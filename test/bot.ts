@@ -9,6 +9,7 @@ import {
   SelectBattleCMDAction,
   SelectIdleCMDAction,
   type OcgMessage,
+  type OcgPosition,
   type OcgResponse,
 } from 'ocgcore-wasm';
 
@@ -137,7 +138,7 @@ export function botRespond(msg: OcgMessage, rng: Rng, st: BotState, attempt: num
     }
     case OcgMessageType.SELECT_POSITION: {
       const options = bits(msg.positions);
-      return { type: OcgResponseType.SELECT_POSITION, position: 1 << options[(Math.floor(rng() * options.length) + attempt) % options.length] };
+      return { type: OcgResponseType.SELECT_POSITION, position: (1 << options[(Math.floor(rng() * options.length) + attempt) % options.length]) as OcgPosition };
     }
     case OcgMessageType.SELECT_TRIBUTE: {
       const order = shuffledIndices(rng, msg.selects.length);

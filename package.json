@@ -13,6 +13,7 @@
     "ocgcore-wasm": "0.1.7"
   },
   "devDependencies": {
+    "@types/node": "^24.19.2",
     "typescript": "6.0.3",
     "vite": "8.3.8"
   }
