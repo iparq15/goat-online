@@ -1394,3 +1394,29 @@ a {
   50% { content: '..'; }
   75% { content: '...'; }
 }
+
+/* ---------- iPhone ---------- */
+
+html {
+  touch-action: manipulation;
+  -webkit-touch-callout: none;
+}
+button,
+.card,
+.zone {
+  touch-action: manipulation;
+}
+.tip {
+  font-size: 13px;
+  color: var(--ink);
+  background: var(--panel);
+  padding: 8px 10px;
+  box-shadow: inset 0 0 0 1px var(--zone-line);
+  max-width: 320px;
+}
+.tip b {
+  color: var(--amber);
+}
+[hidden] {
+  display: none !important;
+}

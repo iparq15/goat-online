@@ -100,6 +100,20 @@ npm run deploy                                       # Worker + Pages
 
 Con `server/.dev.vars` = `DEBUG=1`, la derrota por desconexión es a los 6 s para poder probarla.
 
+## Fase 6: app instalable y pulido para iPhone
+
+- PWA: `public/manifest.webmanifest`, iconos pixel propios (`node scripts/gen-icons.mjs`) y service
+  worker (`public/sw.js`). Al compilar, `vite.config.ts` le añade la lista de archivos de la app,
+  así que tras la primera visita la app abre y el duelo de práctica funciona **sin conexión**.
+  Cuando hay una versión nueva, el menú ofrece actualizar (nunca en mitad de un duelo).
+- En iPhone: Compartir → "Añadir a pantalla de inicio" (la app lo sugiere en Safari).
+- La pantalla no se apaga durante un duelo (Screen Wake Lock).
+- Efectos de sonido sintetizados (sin archivos de audio); se activan con el primer toque (iOS) y se
+  pausan en segundo plano.
+- Ajustes (`src/ui/settings.ts`): sonido, elegir zona automáticamente y avisos de cadena
+  "inteligentes" (no pregunta en simples cambios de fase, salvo en la fase de batalla y la fase
+  final del rival). También desde el menú ☰ del duelo.
+
 ## Licencias
 
 - Este proyecto: **AGPL-3.0-or-later** ([LICENSE](LICENSE)).

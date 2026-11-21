@@ -10,6 +10,7 @@ import { listDecks } from './deck-store.ts';
 import { DuelClient } from './duel-client.ts';
 import { STARTER_DECKS, type NamedDeck } from './starter-decks.ts';
 import { esc } from './text.ts';
+import { keepAwake } from './wake.ts';
 
 const API = '/api';
 const SESSION_KEY = 'goat.session';
@@ -256,6 +257,7 @@ export function playRoom(ctx: OnlineCtx, s: Session): void {
   const leave = (message = '') => {
     if (finished) return;
     finished = true;
+    keepAwake(false);
     link.close();
     client?.destroy();
     if (message) void showLobby(ctx, '', message);
@@ -322,6 +324,7 @@ export function playRoom(ctx: OnlineCtx, s: Session): void {
       case 'update':
         if (!client) {
           app.innerHTML = '<div id="seat" class="seat"></div>';
+          keepAwake(true);
           client = new DuelClient(document.getElementById('seat')!, { send: (msg) => link.send(msg) }, {
             names: [session.name, oppName ?? 'Opponent'],
             onExit: () => {

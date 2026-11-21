@@ -6,6 +6,11 @@ import { OcgMessageType, OcgResponseType, type OcgMessage, type OcgResponse } fr
 import type { DuelView, ServerMsg, ViewCard } from '../protocol.ts';
 import type { DuelLink } from './local-host.ts';
 import { bigCard, cardInfoHtml, miniCard } from './card-view.ts';
+import { settings, updateSettings } from './settings.ts';
+import { play, type Sfx } from './sfx.ts';
+
+/** Prioridad de los sonidos (si hay varios en una actualización suena el primero). */
+const SFX_ORDER: Sfx[] = ['damage', 'attack', 'activate', 'summon', 'set', 'turn', 'heal', 'draw'];
 import {
   allPoolCodes,
   attributeName,
@@ -81,6 +86,8 @@ export class DuelClient {
   private placeable = new Map<string, Place>();
   private announceQuery = '';
   private endHidden = false;
+  /** Sonido pendiente de esta actualización (el de más prioridad). */
+  private sound: Sfx | null = null;
   /** Estado de la red (solo online). */
   private reconnecting = false;
   private opp: { connected: boolean; away?: boolean; forfeitAt?: number } | null = null;
@@ -143,6 +150,7 @@ export class DuelClient {
         this.onUpdate(m);
         break;
       case 'ended':
+        if (!this.ended && this.visible) play(this.opts.hotseat || m.winner === this.u?.view.you ? 'win' : 'lose');
         this.ended = { winner: m.winner, reason: m.reason };
         this.log(m.winner === null ? 'The duel ended in a draw.' : `${this.nameOf(m.winner)} wins (${m.reason}).`);
         this.sheet = null;
@@ -173,7 +181,15 @@ export class DuelClient {
     this.reveal = [];
     // La pista de selección llega junto a cada decisión (al repetirla no se reenvía).
     if (!m.retry) this.selectHint = null;
+    this.sound = null;
     for (const ev of m.events) this.onEvent(ev, m.view);
+    // Un solo sonido por actualización (el más importante). En el modo de dos jugadores en el
+    // mismo móvil, solo suena la pantalla visible.
+    const mine = !!m.prompt && !prevPrompt;
+    if (this.visible) {
+      if (this.sound) play(this.sound);
+      else if (mine && !this.opts.hotseat) play('decide');
+    }
     if (m.retry) this.toast('That action isn\'t possible right now: choose another.');
     // Nueva decisión: se reinicia la selección.
     if (m.prompt && (m.prompt !== prevPrompt || m.retry)) {
@@ -188,13 +204,51 @@ export class DuelClient {
     this.autoRespond();
   }
 
-  /** Decisiones sin elección real que se responden solas (como en EDOPro). */
+  /** Decisiones sin elección real (o que el jugador pidió automatizar) se responden solas. */
   private autoRespond(): void {
-    const p = this.u?.prompt;
-    if (!p) return;
-    if (p.type === OcgMessageType.SELECT_CHAIN && p.selects.length === 0 && !p.forced) {
-      this.respond({ type: OcgResponseType.SELECT_CHAIN, index: null });
+    const u = this.u;
+    const p = u?.prompt;
+    if (!u || !p || this.sent) return;
+    const cfg = settings();
+    if (p.type === OcgMessageType.SELECT_CHAIN && !p.forced) {
+      // Sin nada que activar: pasar (como EDOPro).
+      if (p.selects.length === 0) return this.respond({ type: OcgResponseType.SELECT_CHAIN, index: null });
+      // Modo "smart": no preguntar en simples cambios de fase, salvo los momentos clave.
+      if (cfg.chains === 'smart' && p.spe_count === 0 && !u.retry && this.isQuietTiming(u)) {
+        return this.respond({ type: OcgResponseType.SELECT_CHAIN, index: null });
+      }
     }
+    if (p.type === OcgMessageType.SELECT_PLACE && cfg.autoZone && p.count === 1 && !u.retry) {
+      const me = u.view.you;
+      const free = freePlaces(p.player, p.field_mask);
+      // Solo si todas las zonas posibles son propias (si el efecto deja elegir del rival, se pregunta).
+      const own = free.filter((z) => z.player === me);
+      if (own.length && own.length === free.length) {
+        return this.respond({ type: OcgResponseType.SELECT_PLACE, places: [own[0]] } as OcgResponse);
+      }
+    }
+  }
+
+  /**
+   * ¿Es solo un cambio de fase sin nada a lo que responder? (cadena vacía y sin invocaciones,
+   * activaciones, ataques ni movimientos). En la batalla y la fase final del rival sí se pregunta.
+   */
+  private isQuietTiming(u: Update): boolean {
+    const v = u.view;
+    if (v.chain.length) return false;
+    if (v.turnPlayer !== v.you && (phaseKey(v.phase) === 8 || v.phase === 512)) return false;
+    if (!u.events.length) return false;
+    const quiet = new Set<number>([
+      OcgMessageType.NEW_PHASE,
+      OcgMessageType.NEW_TURN,
+      OcgMessageType.HINT,
+      OcgMessageType.PLAYER_HINT,
+      OcgMessageType.CARD_HINT,
+      OcgMessageType.DRAW,
+      OcgMessageType.SHUFFLE_HAND,
+      OcgMessageType.SHUFFLE_DECK,
+    ]);
+    return u.events.every((e) => quiet.has(e.type));
   }
 
   private respond(r: OcgResponse): void {
@@ -227,6 +281,10 @@ export class DuelClient {
     this.ticker = text;
   }
 
+  private sfx(s: Sfx): void {
+    if (!this.sound || SFX_ORDER.indexOf(s) < SFX_ORDER.indexOf(this.sound)) this.sound = s;
+  }
+
   private flash(controller: number, location: number, sequence: number): void {
     this.flashes.add(key(controller, location, sequence));
   }
@@ -246,6 +304,7 @@ export class DuelClient {
       case T.NEW_TURN:
         this.log(`── Turn ${v.turn} · ${this.nameOf(ev.player & 1)} ──`);
         this.banner = `TURN ${v.turn}`;
+        if ((ev.player & 1) === v.you) this.sfx('turn');
         break;
       case T.NEW_PHASE: {
         const ph = PHASES.find(([id]) => id === phaseKey(ev.phase));
@@ -254,21 +313,26 @@ export class DuelClient {
       }
       case T.DRAW:
         this.log(`${this.nameOf(ev.player)} draws ${ev.drawn.length === 1 ? '1 card' : `${ev.drawn.length} cards`}.`);
+        this.sfx('draw');
         break;
       case T.SUMMONING:
         this.log(`${this.nameOf(ev.controller)} Normal Summons ${cardName(ev.code)}.`);
+        this.sfx('summon');
         this.flash(ev.controller, ev.location, ev.sequence);
         break;
       case T.SPSUMMONING:
         this.log(`${this.nameOf(ev.controller)} Special Summons ${cardName(ev.code)}.`);
+        this.sfx('summon');
         this.flash(ev.controller, ev.location, ev.sequence);
         break;
       case T.FLIPSUMMONING:
         this.log(`${this.nameOf(ev.controller)} Flip Summons ${cardName(ev.code)}.`);
+        this.sfx('summon');
         this.flash(ev.controller, ev.location, ev.sequence);
         break;
       case T.SET:
         this.log(`${this.nameOf(ev.controller)} Sets ${ev.code ? cardName(ev.code) : 'a card'}.`);
+        this.sfx('set');
         break;
       case T.POS_CHANGE:
         if (ev.code) this.log(`${cardName(ev.code)} changes to ${POSITION_NAME[ev.position]?.toLowerCase() ?? 'another position'}.`);
@@ -276,6 +340,7 @@ export class DuelClient {
         break;
       case T.CHAINING:
         this.log(`${this.nameOf(ev.controller)} activates ${cardName(ev.code)}${ev.chain_size > 1 ? ` (Chain Link ${ev.chain_size})` : ''}.`);
+        this.sfx('activate');
         this.flash(ev.controller, ev.location, ev.sequence);
         break;
       case T.CHAIN_NEGATED:
@@ -290,6 +355,7 @@ export class DuelClient {
           this.flash(ev.target.controller, ev.target.location, ev.target.sequence);
         } else this.log(`${cardName(a)} attacks directly.`);
         this.flash(ev.card.controller, ev.card.location, ev.card.sequence);
+        this.sfx('attack');
         break;
       }
       case T.ATTACK_DISABLED:
@@ -297,6 +363,7 @@ export class DuelClient {
         break;
       case T.DAMAGE:
         this.log(`${this.nameOf(ev.player)} takes ${ev.amount} damage.`);
+        this.sfx('damage');
         this.lpFx.push({ player: ev.player, text: `-${ev.amount}`, cls: 'dmg' });
         break;
       case T.PAY_LPCOST:
@@ -305,6 +372,7 @@ export class DuelClient {
         break;
       case T.RECOVER:
         this.log(`${this.nameOf(ev.player)} gains ${ev.amount} LP.`);
+        this.sfx('heal');
         this.lpFx.push({ player: ev.player, text: `+${ev.amount}`, cls: 'heal' });
         break;
       case T.MOVE: {
@@ -861,7 +929,14 @@ export class DuelClient {
           .join('')}</div>`;
         break;
       case 'menu':
-        body = `<h2>Menu</h2><div class="mbtns col">${this.button('Duel log', () => (this.sheet = { kind: 'log' }))}${
+        const cfg = settings();
+        body = `<h2>Menu</h2><div class="mbtns col">${this.button('Duel log', () => (this.sheet = { kind: 'log' }))}${this.button(
+          `Sound: ${cfg.sound ? 'on' : 'off'}`,
+          () => updateSettings({ sound: !cfg.sound }),
+        )}${this.button(`Chain prompts: ${cfg.chains === 'smart' ? 'smart' : 'always ask'}`, () => updateSettings({ chains: cfg.chains === 'smart' ? 'always' : 'smart' }))}${this.button(
+          `Auto zone: ${cfg.autoZone ? 'on' : 'off'}`,
+          () => updateSettings({ autoZone: !cfg.autoZone }),
+        )}${
           this.ended ? '' : this.button('Surrender', () => this.surrender(), 'danger')
         }${this.button('Quit to main menu', () => this.opts.onExit())}</div>`;
         break;

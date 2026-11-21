@@ -14,7 +14,10 @@ import { DuelClient } from './duel-client.ts';
 import { LocalHost } from './local-host.ts';
 import { playRoom, savedSession, showLobby, type OnlineCtx } from './online.ts';
 import { STARTER_DECKS, type NamedDeck } from './starter-decks.ts';
+import { settings, updateSettings } from './settings.ts';
+import { initSfx } from './sfx.ts';
 import { esc, initText } from './text.ts';
+import { keepAwake } from './wake.ts';
 
 const app = document.getElementById('app')!;
 let assets: Assets;
@@ -39,10 +42,33 @@ const prefs = {
 
 /** Cada pantalla limpia los manejadores de la anterior. */
 function fresh(): void {
+  keepAwake(false);
   app.onclick = null;
   app.oninput = null;
   app.onchange = null;
 }
+
+// ---------- app instalable (PWA) ----------
+
+let updateReady = false;
+const standalone = () => matchMedia('(display-mode: standalone)').matches || (navigator as Navigator & { standalone?: boolean }).standalone === true;
+const isIos = () => /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+  const hadController = !!navigator.serviceWorker.controller;
+  navigator.serviceWorker.register('/sw.js').catch(() => {});
+  // Hay una versión nueva instalada: se ofrece recargar desde el menú (nunca en mitad de un duelo).
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!hadController) return;
+    updateReady = true;
+    const slot = document.getElementById('m-update');
+    if (slot) slot.hidden = false;
+  });
+}
+
+// iOS: sin zoom con pellizco ni doble toque dentro de la app.
+document.addEventListener('gesturestart', (e) => e.preventDefault());
+initSfx();
 
 // ---------- carga ----------
 
@@ -90,7 +116,10 @@ function menu(): void {
       <button class="btn ${session ? '' : 'go '}big" id="m-online">Online duel</button>
       <button class="btn big" id="m-practice">Practice duel</button>
       <button class="btn big" id="m-decks">My decks</button>
+      <button class="btn" id="m-settings">Settings</button>
     </div>
+    <button class="btn go" id="m-update" ${updateReady ? '' : 'hidden'}>New version ready · tap to update</button>
+    ${isIos() && !standalone() ? '<p class="tip">Tip: tap <b>Share</b> → <b>Add to Home Screen</b> to install the app.</p>' : ''}
     <p class="credits">Fan project, not affiliated with Konami. Engine: ygopro-core (EDOPro) and Project Ignis card scripts, under AGPL-3.0. <a href="https://github.com/iparq15/goat-online" target="_blank" rel="noopener">Source code</a>.</p>
   </div>`;
   document.getElementById('m-practice')!.onclick = () => void practiceSetup();
@@ -100,6 +129,26 @@ function menu(): void {
   };
   if (session) document.getElementById('m-resume')!.onclick = () => (fresh(), playRoom(onlineCtx(), session));
   document.getElementById('m-decks')!.onclick = decks;
+  document.getElementById('m-settings')!.onclick = settingsScreen;
+  document.getElementById('m-update')!.onclick = () => location.reload();
+}
+
+function settingsScreen(): void {
+  fresh();
+  const s = settings();
+  app.innerHTML = `<div class="screen setup">
+    <h1>Settings</h1>
+    <label class="check"><input type="checkbox" id="s-sound" ${s.sound ? 'checked' : ''}> Sound effects</label>
+    <label class="check"><input type="checkbox" id="s-zone" ${s.autoZone ? 'checked' : ''}> Choose zones automatically when summoning or setting</label>
+    <label class="check"><input type="checkbox" id="s-chain" ${s.chains === 'always' ? 'checked' : ''}> Always ask to chain (otherwise only when something happens, and in your opponent's Battle and End Phase)</label>
+    <div class="mbtns col"><button class="btn go" id="s-back">Done</button></div>
+    <p class="muted small">Settings are saved on this device.</p>
+  </div>`;
+  const $ = (id: string) => document.getElementById(id) as HTMLInputElement;
+  $('s-back').onclick = () => {
+    updateSettings({ sound: $('s-sound').checked, autoZone: $('s-zone').checked, chains: $('s-chain').checked ? 'always' : 'smart' });
+    menu();
+  };
 }
 
 function decks(): void {
@@ -161,6 +210,7 @@ async function startPractice(names: [string, string], decks: [Deck, Deck], curta
   app.innerHTML = `<div class="screen center"><p class="muted">Shuffling…</p></div>`;
   const core = await assets.core();
   const host = new LocalHost(core, assets.data, decks, names);
+  keepAwake(true);
   app.innerHTML = `<div class="hotseat"><div id="s0" class="seat"></div><div id="s1" class="seat"></div><div id="curtain" class="curtain" hidden></div></div>`;
   const seatEls = [document.getElementById('s0')!, document.getElementById('s1')!];
   const curtainEl = document.getElementById('curtain')!;

@@ -15,7 +15,10 @@ público de salas. Tema visual **original** con aire retro de portátil de los 2
 - **Árbitro en el servidor**: el duelo corre en un Durable Object de Cloudflare. Cada
   jugador solo recibe la información que puede ver (mano rival, orden del mazo… nunca
   salen del servidor). Los clientes solo envían sus respuestas.
-- Frontend: PWA pensada primero para Safari en iPhone, en vertical, táctil.
+- Frontend: PWA pensada primero para Safari en iPhone, en vertical, táctil. **La interfaz
+  está en inglés** (textos del sistema de EDOPro en inglés); se habla con el usuario en español.
+- Deploy: Worker `goat-online` (lobby + duelos) y Cloudflare Pages `goat-online.pages.dev`,
+  que reenvía `/api/*` al Worker (`pages/`). `npm run deploy`.
 - Lobby: Cloudflare Workers + Durable Objects (reutilizando la idea de gba-link-online).
 
 ## Reglas
