@@ -7,14 +7,17 @@
   "scripts": {
     "data": "node scripts/build-data.mjs",
     "test:duel": "node test/headless-duel.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "server:dev": "wrangler dev --config server/wrangler.jsonc"
   },
   "dependencies": {
     "ocgcore-wasm": "0.1.7"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^5.20261120.1",
     "@types/node": "^24.19.2",
     "typescript": "6.0.3",
-    "vite": "8.3.8"
+    "vite": "8.3.8",
+    "wrangler": "^4.166.0"
   }
 }

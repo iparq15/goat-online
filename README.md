@@ -19,6 +19,28 @@ npm run data
 npm run test:duel -- 40
 ```
 
+## Fase 2: servidor de duelos (árbitro)
+
+`server/`: Worker de Cloudflare con un Durable Object por sala (`DuelRoom`) que ejecuta el motor.
+
+- Cada jugador recibe solo lo que puede ver (`src/engine/visibility.ts`): nunca la mano, el mazo,
+  el Extra Deck ni las cartas boca abajo del rival, ni en el tablero, ni en los eventos, ni en las
+  opciones de una decisión.
+- Los clientes solo mandan respuestas. El servidor comprueba su forma (`src/engine/validate.ts`)
+  antes de dárselas al motor; las que no son legales se vuelven a pedir.
+- Reconexión con el token del asiento. Si Cloudflare saca la sala de memoria, el duelo se
+  reconstruye repitiendo las respuestas guardadas (el motor es determinista).
+- Protocolo: `src/protocol.ts` (WebSocket `GET /api/duel/<sala>`, JSON con bigint vía `src/codec.ts`).
+
+```powershell
+npm run server:dev                                   # http://localhost:8788
+node test/server-duel.ts ws://localhost:8788 20      # 20 duelos bot contra bot por el servidor
+```
+
+La prueba comprueba en cada actualización que no hay fugas de información, y en el primer duelo:
+respuestas fuera de turno y mal formadas, reconexión y reconstrucción de la sala (con
+`server/.dev.vars` = `DEBUG=1`).
+
 ## Licencias
 
 - Este proyecto: **AGPL-3.0-or-later** ([LICENSE](LICENSE)).
