@@ -55,12 +55,26 @@ limitada y fuentes de mapa de bits (Press Start 2P y Pixelify Sans, licencia OFL
   decidir; opcionalmente se tapa al cambiar de jugador.
 - Mazos de inicio legales en GOAT (`src/ui/starter-decks.ts`, comprobados con
   `node scripts/check-starters.ts`) e importación de `.ydk`.
-- Textos del sistema en español tomados de EDOPro; los textos de las cartas, en inglés.
+- La interfaz está en inglés (textos del sistema de `config/strings.conf` de EDOPro; textos de las
+  cartas, en inglés).
 
 ```powershell
 npm run dev        # http://localhost:5180 (también desde el móvil en la misma red)
 npm run build      # dist/
 ```
+
+## Fase 4: editor de mazos
+
+- "My decks": crear, copiar, borrar, importar (varios `.ydk` a la vez) y exportar `.ydk` (en el
+  móvil abre el menú de compartir para guardarlo en Archivos). Los mazos de inicio se pueden copiar.
+- Los mazos se guardan en IndexedDB (`src/ui/deck-store.ts`), con localStorage de respaldo.
+- Editor limitado al pool GOAT: búsqueda por nombre (o texto), filtros por tipo, atributo y nivel,
+  límites de la lista (prohibida, limitada, semilimitada) y avisos de legalidad en vivo.
+- Las versiones de una misma carta (GOAT, pre-errata, arte alternativo) cuentan juntas para el
+  límite (`src/engine/ydk.ts`).
+- Al importar, las cartas con su código normal se cambian por su versión GOAT
+  (`normalizeDeck`), así funcionan los `.ydk` hechos en otros simuladores.
+- El duelo de práctica solo deja elegir mazos legales.
 
 ## Licencias
 

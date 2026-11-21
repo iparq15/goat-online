@@ -97,7 +97,7 @@ export class Arbiter {
   }
 
   surrender(team: 0 | 1): void {
-    this.end(team === 0 ? 1 : 0, 'Rendición');
+    this.end(team === 0 ? 1 : 0, 'Surrender');
   }
 
   /** Actualización para `team`. `resync`: sin eventos (al reconectar o reconstruir). */
@@ -129,17 +129,17 @@ export class Arbiter {
 export function winReason(r: number | undefined): string {
   switch (r) {
     case 0:
-      return 'Rendición';
+      return 'Surrender';
     case 1:
-      return 'LP a 0';
+      return 'LP reached 0';
     case 2:
-      return 'Sin cartas en el mazo';
+      return 'Deck out';
     case 3:
-      return 'Tiempo agotado';
+      return 'Time out';
     case 4:
-      return 'Desconexión';
+      return 'Disconnection';
     default:
-      return r !== undefined && r >= 0x10 ? 'Victoria por efecto de una carta' : 'Fin del duelo';
+      return r !== undefined && r >= 0x10 ? 'Win by card effect' : 'Duel ended';
   }
 }
 

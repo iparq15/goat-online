@@ -137,7 +137,7 @@ export function miniCard(code: number, o: MiniOpts = {}): string {
     bottom = `<div class="cs"><span class="${atkCls}">${fmtStat(atk)}</span><span class="${defCls}">${fmtStat(dfn)}</span></div>`;
     badge = `<span class="attr a${c.attribute}">${ATTRIBUTE_SHORT[c.attribute] ?? ''}</span>`;
   } else if (c) {
-    bottom = `<div class="cs st">${c.type & TYPE.SPELL ? 'MAG' : 'TRA'} ${spellIcon(c.type)}</div>`;
+    bottom = `<div class="cs st">${c.type & TYPE.SPELL ? 'SPELL' : 'TRAP'} ${spellIcon(c.type)}</div>`;
   }
   return `<div class="${cls.join(' ')}" ${data}><div class="cn">${esc(cardName(code))}</div><div class="ca" style="--img:url(${sigilUrl(code)})">${badge}</div>${bottom}</div>`;
 }
@@ -158,14 +158,14 @@ export function bigCard(code: number, position?: number): string {
 
 /** Ficha de texto de la carta (para el panel de detalle). */
 export function cardInfoHtml(code: number, stats?: { attack?: number; defense?: number; level?: number }): string {
-  if (!code) return `<h3>Carta boca abajo</h3><p class="muted">No puedes ver esta carta.</p>`;
+  if (!code) return `<h3>Face-down card</h3><p class="muted">You can't see this card.</p>`;
   const c = card(code);
   if (!c) return `<h3>#${code}</h3>`;
   const lines: string[] = [`<h3>${esc(cardName(code))}</h3>`];
   const meta: string[] = [];
   if (c.type & TYPE.MONSTER) {
     meta.push(attributeName(c.attribute));
-    if (c.level) meta.push(`Nivel ${stats?.level ?? c.level}`);
+    if (c.level) meta.push(`Level ${stats?.level ?? c.level}`);
   }
   meta.push(typeLine(c));
   lines.push(`<div class="meta">${meta.map(esc).join(' · ')}</div>`);

@@ -10,7 +10,7 @@ export interface NamedDeck {
 
 export const STARTER_DECKS: NamedDeck[] = [
   {
-    name: 'Cabras (control)',
+    name: 'Goat Control',
     deck: {
       main: [
         504700118, 71413901, 33184167, 504700178, 33508719, 31560081, 504700038, 504700038, 7572887, 18036057, 18036057, 34853266, 34853266, 511000818,
@@ -22,7 +22,7 @@ export const STARTER_DECKS: NamedDeck[] = [
     },
   },
   {
-    name: 'Guerreros del caos',
+    name: 'Chaos Warrior',
     deck: {
       main: [
         504700118, 9596126, 71413901, 33184167, 504700178, 74131780, 51945556, 70074904, 70074904, 7572887, 39507162, 39507162, 504700077, 504700077,

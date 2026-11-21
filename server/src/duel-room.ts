@@ -55,7 +55,7 @@ export class DuelRoom extends DurableObject<Env> {
   // ---------- conexión ----------
 
   async fetch(req: Request): Promise<Response> {
-    if (req.headers.get('Upgrade') !== 'websocket') return new Response('Se esperaba un WebSocket', { status: 426 });
+    if (req.headers.get('Upgrade') !== 'websocket') return new Response('Expected a WebSocket', { status: 426 });
     const pair = new WebSocketPair();
     const [client, server] = Object.values(pair);
     this.ctx.acceptWebSocket(server);
@@ -65,12 +65,12 @@ export class DuelRoom extends DurableObject<Env> {
 
   async webSocketMessage(ws: WebSocket, raw: string | ArrayBuffer): Promise<void> {
     await this.ready;
-    if (typeof raw !== 'string' || raw.length > MAX_MSG) return this.send(ws, { t: 'error', message: 'Mensaje no válido.' });
+    if (typeof raw !== 'string' || raw.length > MAX_MSG) return this.send(ws, { t: 'error', message: 'Invalid message.' });
     let msg: ClientMsg;
     try {
       msg = decode<ClientMsg>(raw);
     } catch {
-      return this.send(ws, { t: 'error', message: 'Mensaje no válido.' });
+      return this.send(ws, { t: 'error', message: 'Invalid message.' });
     }
     const att = ws.deserializeAttachment() as Attachment;
     switch (msg.t) {
@@ -90,7 +90,7 @@ export class DuelRoom extends DurableObject<Env> {
         return;
       case 'surrender':
         if (att.seat === null || !this.match || this.match.ended) return;
-        return this.finish(this.teamOf(att.seat) === 0 ? 1 : 0, 'Rendición');
+        return this.finish(this.teamOf(att.seat) === 0 ? 1 : 0, 'Surrender');
     }
   }
 
@@ -108,8 +108,8 @@ export class DuelRoom extends DurableObject<Env> {
   }
 
   private async onJoin(ws: WebSocket, msg: Extract<ClientMsg, { t: 'join' }>): Promise<void> {
-    if (msg.v !== PROTOCOL_VERSION) return this.send(ws, { t: 'error', message: 'Versión de la app distinta: recarga la página.' });
-    const name = String(msg.name ?? '').trim().slice(0, 24) || 'Jugador';
+    if (msg.v !== PROTOCOL_VERSION) return this.send(ws, { t: 'error', message: 'App version mismatch: reload the page.' });
+    const name = String(msg.name ?? '').trim().slice(0, 24) || 'Player';
 
     // Reconexión con el token de un asiento.
     const seats = this.match?.seats ?? this.lobby;
@@ -123,9 +123,9 @@ export class DuelRoom extends DurableObject<Env> {
       return;
     }
 
-    if (this.match) return this.send(ws, { t: 'error', message: 'La sala ya está jugando.' });
+    if (this.match) return this.send(ws, { t: 'error', message: 'This room is already playing.' });
     const seat = this.lobby.findIndex((s) => s === null);
-    if (seat < 0) return this.send(ws, { t: 'error', message: 'La sala está llena.' });
+    if (seat < 0) return this.send(ws, { t: 'error', message: 'This room is full.' });
 
     const deck = sanitizeDeck(msg.deck);
     const problems = validateDeck(deck, getData());

@@ -111,14 +111,14 @@ export class DuelClient {
         break;
       case 'ended':
         this.ended = { winner: m.winner, reason: m.reason };
-        this.log(m.winner === null ? 'Duelo terminado en empate.' : `Gana ${this.nameOf(m.winner)} (${m.reason}).`);
+        this.log(m.winner === null ? 'The duel ended in a draw.' : `${this.nameOf(m.winner)} wins (${m.reason}).`);
         this.sheet = null;
         break;
       case 'error':
         this.log(`Error: ${m.message}`);
         break;
       case 'opponent':
-        this.log(m.connected ? `${m.name ?? 'El rival'} está conectado.` : `${m.name ?? 'El rival'} se desconectó.`);
+        this.log(m.connected ? `${m.name ?? 'Your opponent'} is connected.` : `${m.name ?? 'Your opponent'} disconnected.`);
         break;
       default:
         return;
@@ -135,7 +135,7 @@ export class DuelClient {
     // La pista de selección llega junto a cada decisión (al repetirla no se reenvía).
     if (!m.retry) this.selectHint = null;
     for (const ev of m.events) this.onEvent(ev, m.view);
-    if (m.retry) this.toast('Esa acción no es posible ahora: elige otra.');
+    if (m.retry) this.toast('That action isn\'t possible right now: choose another.');
     // Nueva decisión: se reinicia la selección.
     if (m.prompt && (m.prompt !== prevPrompt || m.retry)) {
       this.picks = [];
@@ -197,7 +197,7 @@ export class DuelClient {
     switch (ev.type) {
       case T.HINT:
         if (ev.hint_type === 3) this.selectHint = ev.hint;
-        else if (ev.hint_type === 4) this.log(`${this.nameOf(1 - v.you)} eligió: ${descText(ev.hint)}`);
+        else if (ev.hint_type === 4) this.log(`${this.nameOf(1 - v.you)} chose: ${descText(ev.hint)}`);
         else if (ev.hint_type === 2) this.toast(descText(ev.hint));
         else if (ev.hint_type === 8) this.log(`${sys(212)} ${cardName(Number(ev.hint))}`);
         else if (ev.hint_type === 9) this.log(`${sys(215)} ${ev.hint}`);
@@ -205,8 +205,8 @@ export class DuelClient {
         else if (ev.hint_type === 7) this.log(`${sys(214)} ${attributeName(Number(ev.hint))}`);
         break;
       case T.NEW_TURN:
-        this.log(`── Turno ${v.turn} · ${this.nameOf(ev.player & 1)} ──`);
-        this.banner = `TURNO ${v.turn}`;
+        this.log(`── Turn ${v.turn} · ${this.nameOf(ev.player & 1)} ──`);
+        this.banner = `TURN ${v.turn}`;
         break;
       case T.NEW_PHASE: {
         const ph = PHASES.find(([id]) => id === phaseKey(ev.phase));
@@ -214,42 +214,42 @@ export class DuelClient {
         break;
       }
       case T.DRAW:
-        this.log(`${this.nameOf(ev.player)} roba ${ev.drawn.length === 1 ? '1 carta' : `${ev.drawn.length} cartas`}.`);
+        this.log(`${this.nameOf(ev.player)} draws ${ev.drawn.length === 1 ? '1 card' : `${ev.drawn.length} cards`}.`);
         break;
       case T.SUMMONING:
-        this.log(`${this.nameOf(ev.controller)} invoca ${cardName(ev.code)}.`);
+        this.log(`${this.nameOf(ev.controller)} Normal Summons ${cardName(ev.code)}.`);
         this.flash(ev.controller, ev.location, ev.sequence);
         break;
       case T.SPSUMMONING:
-        this.log(`${this.nameOf(ev.controller)} invoca de modo especial ${cardName(ev.code)}.`);
+        this.log(`${this.nameOf(ev.controller)} Special Summons ${cardName(ev.code)}.`);
         this.flash(ev.controller, ev.location, ev.sequence);
         break;
       case T.FLIPSUMMONING:
-        this.log(`${this.nameOf(ev.controller)} invoca por volteo ${cardName(ev.code)}.`);
+        this.log(`${this.nameOf(ev.controller)} Flip Summons ${cardName(ev.code)}.`);
         this.flash(ev.controller, ev.location, ev.sequence);
         break;
       case T.SET:
-        this.log(`${this.nameOf(ev.controller)} coloca ${ev.code ? cardName(ev.code) : 'una carta'}.`);
+        this.log(`${this.nameOf(ev.controller)} Sets ${ev.code ? cardName(ev.code) : 'a card'}.`);
         break;
       case T.POS_CHANGE:
-        if (ev.code) this.log(`${cardName(ev.code)} pasa a ${POSITION_NAME[ev.position]?.toLowerCase() ?? 'otra posición'}.`);
+        if (ev.code) this.log(`${cardName(ev.code)} changes to ${POSITION_NAME[ev.position]?.toLowerCase() ?? 'another position'}.`);
         this.flash(ev.controller, ev.location, ev.sequence);
         break;
       case T.CHAINING:
-        this.log(`${this.nameOf(ev.controller)} activa ${cardName(ev.code)}${ev.chain_size > 1 ? ` (eslabón ${ev.chain_size})` : ''}.`);
+        this.log(`${this.nameOf(ev.controller)} activates ${cardName(ev.code)}${ev.chain_size > 1 ? ` (Chain Link ${ev.chain_size})` : ''}.`);
         this.flash(ev.controller, ev.location, ev.sequence);
         break;
       case T.CHAIN_NEGATED:
       case T.CHAIN_DISABLED:
-        this.log(`Se niega el eslabón ${ev.chain_size}.`);
+        this.log(`Chain Link ${ev.chain_size} is negated.`);
         break;
       case T.ATTACK: {
         const a = this.codeAt(v, ev.card.controller, ev.card.location, ev.card.sequence);
         if (ev.target) {
           const t = this.codeAt(v, ev.target.controller, ev.target.location, ev.target.sequence);
-          this.log(`${cardName(a)} ataca a ${t ? cardName(t) : 'un monstruo boca abajo'}.`);
+          this.log(`${cardName(a)} attacks ${t ? cardName(t) : 'a face-down monster'}.`);
           this.flash(ev.target.controller, ev.target.location, ev.target.sequence);
-        } else this.log(`${cardName(a)} ataca directamente.`);
+        } else this.log(`${cardName(a)} attacks directly.`);
         this.flash(ev.card.controller, ev.card.location, ev.card.sequence);
         break;
       }
@@ -257,15 +257,15 @@ export class DuelClient {
         this.log(sys(1621));
         break;
       case T.DAMAGE:
-        this.log(`${this.nameOf(ev.player)} recibe ${ev.amount} de daño.`);
+        this.log(`${this.nameOf(ev.player)} takes ${ev.amount} damage.`);
         this.lpFx.push({ player: ev.player, text: `-${ev.amount}`, cls: 'dmg' });
         break;
       case T.PAY_LPCOST:
-        this.log(`${this.nameOf(ev.player)} paga ${ev.amount} LP.`);
+        this.log(`${this.nameOf(ev.player)} pays ${ev.amount} LP.`);
         this.lpFx.push({ player: ev.player, text: `-${ev.amount}`, cls: 'dmg' });
         break;
       case T.RECOVER:
-        this.log(`${this.nameOf(ev.player)} gana ${ev.amount} LP.`);
+        this.log(`${this.nameOf(ev.player)} gains ${ev.amount} LP.`);
         this.lpFx.push({ player: ev.player, text: `+${ev.amount}`, cls: 'heal' });
         break;
       case T.MOVE: {
@@ -274,49 +274,49 @@ export class DuelClient {
         const from = ev.from.location;
         if (from === to) break;
         const n = cardName(ev.card);
-        if (to === 16) this.log(`${n} va al Cementerio.`);
-        else if (to === 32) this.log(`${n} queda desterrada.`);
-        else if (to === 2 && from !== 1) this.log(`${n} vuelve a la mano de ${this.nameOf(ev.to.controller)}.`);
-        else if (to === 2 && from === 1) this.log(`${this.nameOf(ev.to.controller)} añade ${n} a su mano.`);
-        else if (to === 1 || to === 64) this.log(`${n} vuelve al ${LOCATION_NAME[to]}.`);
+        if (to === 16) this.log(`${n} is sent to the GY.`);
+        else if (to === 32) this.log(`${n} is banished.`);
+        else if (to === 2 && from !== 1) this.log(`${n} returns to ${this.nameOf(ev.to.controller)}'s hand.`);
+        else if (to === 2 && from === 1) this.log(`${this.nameOf(ev.to.controller)} adds ${n} to their hand.`);
+        else if (to === 1 || to === 64) this.log(`${n} returns to the ${LOCATION_NAME[to]}.`);
         if (to === 4 || to === 8) this.flash(ev.to.controller, to, ev.to.sequence);
         break;
       }
       case T.EQUIP: {
         const c = this.codeAt(v, ev.card.controller, ev.card.location, ev.card.sequence);
         const t = this.codeAt(v, ev.target.controller, ev.target.location, ev.target.sequence);
-        if (c && t) this.log(`${cardName(c)} se equipa a ${cardName(t)}.`);
+        if (c && t) this.log(`${cardName(c)} is equipped to ${cardName(t)}.`);
         break;
       }
       case T.ADD_COUNTER:
-        this.log(`Se ${ev.count === 1 ? 'pone 1 contador' : `ponen ${ev.count} contadores`} (${counterName(ev.counter_type)}).`);
+        this.log(`${ev.count === 1 ? '1 counter is placed' : `${ev.count} counters are placed`} (${counterName(ev.counter_type)}).`);
         break;
       case T.REMOVE_COUNTER:
-        this.log(`Se ${ev.count === 1 ? 'quita 1 contador' : `quitan ${ev.count} contadores`} (${counterName(ev.counter_type)}).`);
+        this.log(`${ev.count === 1 ? '1 counter is removed' : `${ev.count} counters are removed`} (${counterName(ev.counter_type)}).`);
         break;
       case T.TOSS_COIN:
-        this.log(`${sys(1623)} ${ev.results.map((r) => (r ? 'cara' : 'cruz')).join(', ')}`);
+        this.log(`${sys(1623)} ${ev.results.map((r) => (r ? 'heads' : 'tails')).join(', ')}`);
         break;
       case T.TOSS_DICE:
         this.log(`${sys(1624)} ${ev.results.join(', ')}`);
         break;
       case T.HAND_RES:
-        this.log(`Piedra, papel o tijera: ${ev.results.map((r) => RPS[r] ?? '?').join(' contra ')}`);
+        this.log(`Rock-paper-scissors: ${ev.results.map((r) => RPS[r] ?? '?').join(' vs ')}`);
         break;
       case T.CONFIRM_CARDS:
       case T.CONFIRM_DECKTOP: {
         const codes = ev.cards.map((c) => c.code).filter(Boolean);
         if (codes.length) {
           this.reveal.push(...codes);
-          this.log(`Se muestra: ${codes.map(cardName).join(', ')}.`);
+          this.log(`Revealed: ${codes.map(cardName).join(', ')}.`);
         }
         break;
       }
       case T.SHUFFLE_HAND:
-        if (ev.player !== v.you) this.log(`${this.nameOf(ev.player)} baraja su mano.`);
+        if (ev.player !== v.you) this.log(`${this.nameOf(ev.player)} shuffles their hand.`);
         break;
       case T.SHUFFLE_DECK:
-        this.log(`${this.nameOf(ev.player)} baraja su mazo.`);
+        this.log(`${this.nameOf(ev.player)} shuffles their Deck.`);
         break;
       case T.CARD_SELECTED:
       case T.BECOME_TARGET:
@@ -425,14 +425,14 @@ export class DuelClient {
     };
     const R = OcgResponseType;
     if (p.type === OcgMessageType.SELECT_IDLECMD) {
-      p.summons.forEach((c, i) => add(c, 'Invocar', { type: R.SELECT_IDLECMD, action: 0, index: i }));
-      p.special_summons.forEach((c, i) => add(c, 'Invocación especial', { type: R.SELECT_IDLECMD, action: 1, index: i }));
-      p.pos_changes.forEach((c, i) => add(c, 'Cambiar posición', { type: R.SELECT_IDLECMD, action: 2, index: i }));
-      p.monster_sets.forEach((c, i) => add(c, 'Colocar', { type: R.SELECT_IDLECMD, action: 3, index: i }));
-      p.spell_sets.forEach((c, i) => add(c, 'Colocar', { type: R.SELECT_IDLECMD, action: 4, index: i }));
+      p.summons.forEach((c, i) => add(c, 'Normal Summon', { type: R.SELECT_IDLECMD, action: 0, index: i }));
+      p.special_summons.forEach((c, i) => add(c, 'Special Summon', { type: R.SELECT_IDLECMD, action: 1, index: i }));
+      p.pos_changes.forEach((c, i) => add(c, 'Change position', { type: R.SELECT_IDLECMD, action: 2, index: i }));
+      p.monster_sets.forEach((c, i) => add(c, 'Set', { type: R.SELECT_IDLECMD, action: 3, index: i }));
+      p.spell_sets.forEach((c, i) => add(c, 'Set', { type: R.SELECT_IDLECMD, action: 4, index: i }));
       p.activates.forEach((c, i) => add(c, this.activateLabel(c, p.activates), { type: R.SELECT_IDLECMD, action: 5, index: i }));
     } else if (p.type === OcgMessageType.SELECT_BATTLECMD) {
-      p.attacks.forEach((c, i) => add(c, c.can_direct ? 'Atacar (directo posible)' : 'Atacar', { type: R.SELECT_BATTLECMD, action: 1, index: i }));
+      p.attacks.forEach((c, i) => add(c, c.can_direct ? 'Attack (direct attack possible)' : 'Attack', { type: R.SELECT_BATTLECMD, action: 1, index: i }));
       p.chains.forEach((c, i) => add(c, this.activateLabel(c, p.chains), { type: R.SELECT_BATTLECMD, action: 0, index: i }));
     } else if (p.type === OcgMessageType.SELECT_PLACE || p.type === OcgMessageType.SELECT_DISFIELD) {
       for (const pl of freePlaces(p.player, p.field_mask)) this.placeable.set(key(pl.player, pl.location, pl.sequence), pl);
@@ -443,9 +443,9 @@ export class DuelClient {
     const same = all.filter((x) => x.code === c.code).length;
     if (same > 1 || (c.description && Number(c.description >> 20n) !== 0)) {
       const d = descText(c.description);
-      if (d && !d.startsWith('Efecto de')) return `Activar: ${d}`;
+      if (d && !d.startsWith('Effect of')) return `Activate: ${d}`;
     }
-    return 'Activar';
+    return 'Activate';
   }
 
   // ---------- render ----------
@@ -454,7 +454,7 @@ export class DuelClient {
     this.handlers.clear();
     this.hid = 0;
     if (!this.u) {
-      this.el.innerHTML = `<div class="loading">Preparando el duelo…</div>`;
+      this.el.innerHTML = `<div class="loading">Setting up the duel…</div>`;
       return;
     }
     this.computeActions();
@@ -477,7 +477,7 @@ export class DuelClient {
     const phase = phaseKey(v.phase);
     const phases = PHASES.map(([id, short]) => `<span class="${id === phase ? 'on' : ''}">${short}</span>`).join('');
     const turnOwner = v.turnPlayer === me ? 'mine' : 'theirs';
-    const chain = v.chain.length ? `<button class="chainbtn" ${this.h(() => (this.sheet = { kind: 'chain' }))}>CADENA ${v.chain.length}</button>` : '';
+    const chain = v.chain.length ? `<button class="chainbtn" ${this.h(() => (this.sheet = { kind: 'chain' }))}>CHAIN ${v.chain.length}</button>` : '';
     const reveal = this.reveal.length
       ? `<div class="reveal">${this.reveal.map((c, i) => miniCard(c, { cls: 'xs', data: `data-rv="${i}"` })).join('')}</div>`
       : '';
@@ -489,7 +489,7 @@ export class DuelClient {
         <div class="mid">
           <div class="phases">${phases}</div>
           ${chain}
-          <button class="ticker" ${this.h(() => (this.sheet = { kind: 'log' }))}>${esc(this.ticker || 'Toca una carta para verla')}</button>
+          <button class="ticker" ${this.h(() => (this.sheet = { kind: 'log' }))}>${esc(this.ticker || 'Tap a card to see it')}</button>
         </div>
         <div class="row">${this.zoneCell(me, 8, 5)}${cols.map((i) => this.zoneCell(me, 4, i)).join('')}${this.pileCell(me, 16)}</div>
         <div class="row">${this.pileCell(me, 64)}${cols.map((i) => this.zoneCell(me, 8, i)).join('')}${this.pileCell(me, 1)}</div>
@@ -512,14 +512,14 @@ export class DuelClient {
     const pl = v.players[p];
     const fx = this.lpFx.filter((f) => f.player === p).map((f) => `<span class="lpfx ${f.cls}">${f.text}</span>`).join('');
     const lpPct = Math.max(0, Math.min(100, (pl.lp / 8000) * 100));
-    const oppHand = side === 'opp' ? `<span class="chip" title="Mano">✋${pl.hand.length}</span>` : '';
+    const oppHand = side === 'opp' ? `<span class="chip" title="Hand">✋${pl.hand.length}</span>` : '';
     const active = v.turnPlayer === p ? 'active' : '';
-    const menu = side === 'me' ? `<button class="menubtn" ${this.h(() => (this.sheet = { kind: 'menu' }))} aria-label="Menú">☰</button>` : '';
+    const menu = side === 'me' ? `<button class="menubtn" ${this.h(() => (this.sheet = { kind: 'menu' }))} aria-label="Menu">☰</button>` : '';
     return `<div class="pbar ${side} ${active}">
       <span class="pname">${esc(this.nameOf(p))}</span>
       <span class="lp"><span class="lpbar"><i style="width:${lpPct}%"></i></span><b>${pl.lp}</b>${fx}</span>
       ${oppHand}
-      <button class="chip" data-pile="${p}:32">DES ${pl.banished.length}</button>
+      <button class="chip" data-pile="${p}:32">BAN ${pl.banished.length}</button>
       ${menu}
     </div>`;
   }
@@ -535,14 +535,14 @@ export class DuelClient {
     if (this.places.some((x) => key(x.player, x.location, x.sequence) === k)) cls.push('picked');
     if (this.flashes.has(k)) cls.push('flash');
     if (v.chain.some((ch) => ch.controller === p && (ch.location === loc || (ch.location === 256 && seq === 5)) && ch.sequence === (ch.location === 256 ? 0 : seq))) cls.push('chained');
-    const inner = c ? miniCard(c.code, { position: c.position, attack: c.attack, defense: c.defense, monster: loc === 4 }) : seq === 5 ? '<span class="zl">CAMPO</span>' : '';
+    const inner = c ? miniCard(c.code, { position: c.position, attack: c.attack, defense: c.defense, monster: loc === 4 }) : seq === 5 ? '<span class="zl">FIELD</span>' : '';
     const ctr = c?.counters ? `<span class="ctr">${Object.values(c.counters).reduce((a, b) => a + b, 0)}</span>` : '';
     return `<div class="${cls.join(' ')}" data-z="${k}">${inner}${ctr}</div>`;
   }
 
   private pileCell(p: number, loc: 1 | 16 | 64): string {
     const pl = this.u!.view.players[p];
-    const label = loc === 1 ? 'MAZO' : loc === 16 ? 'CEM' : 'EXTRA';
+    const label = loc === 1 ? 'DECK' : loc === 16 ? 'GY' : 'EXTRA';
     const count = loc === 1 ? pl.deckCount : loc === 16 ? pl.grave.length : pl.extraCount;
     let top = '';
     if (loc === 1 && count) top = miniCard(0);
@@ -562,40 +562,40 @@ export class DuelClient {
     const u = this.u!;
     const p = u.prompt;
     const R = OcgResponseType;
-    if (this.ended) return `<div class="bar"><span class="btxt">Duelo terminado.</span><span class="bbtns">${this.button('Ver resultado', () => (this.endHidden = false), 'go')}</span></div>`;
+    if (this.ended) return `<div class="bar"><span class="btxt">Duel over.</span><span class="bbtns">${this.button('See result', () => (this.endHidden = false), 'go')}</span></div>`;
     if (!p || this.sent) {
       const who = u.waitingFor === null ? '' : this.nameOf(u.waitingFor);
-      return `<div class="bar wait"><span class="btxt">${who ? `Esperando a ${esc(who)}…` : '…'}</span></div>`;
+      return `<div class="bar wait"><span class="btxt">${who ? `Waiting for ${esc(who)}…` : '…'}</span></div>`;
     }
     const btns: string[] = [];
     let text = '';
     switch (p.type) {
       case OcgMessageType.SELECT_IDLECMD:
-        text = this.u!.view.phase === 256 ? 'Fase principal 2: toca una carta.' : 'Fase principal: toca una carta.';
-        if (p.to_bp) btns.push(this.button('Batalla', () => this.respond({ type: R.SELECT_IDLECMD, action: 6, index: null }), 'go'));
-        if (p.to_ep) btns.push(this.button('Fin del turno', () => this.respond({ type: R.SELECT_IDLECMD, action: 7, index: null })));
+        text = this.u!.view.phase === 256 ? 'Main Phase 2: tap a card.' : 'Main Phase: tap a card.';
+        if (p.to_bp) btns.push(this.button('Battle', () => this.respond({ type: R.SELECT_IDLECMD, action: 6, index: null }), 'go'));
+        if (p.to_ep) btns.push(this.button('End turn', () => this.respond({ type: R.SELECT_IDLECMD, action: 7, index: null })));
         break;
       case OcgMessageType.SELECT_BATTLECMD:
-        text = p.attacks.length ? 'Batalla: toca un monstruo para atacar.' : 'Batalla.';
-        if (p.to_m2) btns.push(this.button('Fase principal 2', () => this.respond({ type: R.SELECT_BATTLECMD, action: 2, index: null }), 'go'));
-        if (p.to_ep) btns.push(this.button('Fin del turno', () => this.respond({ type: R.SELECT_BATTLECMD, action: 3, index: null })));
+        text = p.attacks.length ? 'Battle: tap a monster to attack.' : 'Battle Phase.';
+        if (p.to_m2) btns.push(this.button('Main Phase 2', () => this.respond({ type: R.SELECT_BATTLECMD, action: 2, index: null }), 'go'));
+        if (p.to_ep) btns.push(this.button('End turn', () => this.respond({ type: R.SELECT_BATTLECMD, action: 3, index: null })));
         break;
       case OcgMessageType.SELECT_PLACE:
       case OcgMessageType.SELECT_DISFIELD: {
-        text = this.selectHint ? descText(this.selectHint) : p.type === OcgMessageType.SELECT_PLACE ? 'Elige una zona.' : sys(570);
+        text = this.selectHint ? descText(this.selectHint) : p.type === OcgMessageType.SELECT_PLACE ? 'Choose a zone.' : sys(570);
         text = hintText(text);
         if (p.count > 1) text += ` (${this.places.length}/${p.count})`;
         const free = [...this.placeable.values()];
         btns.push(
-          this.button('Automático', () =>
+          this.button('Auto', () =>
             this.respond({ type: p.type === OcgMessageType.SELECT_PLACE ? R.SELECT_PLACE : R.SELECT_DISFIELD, places: free.slice(0, p.count) } as OcgResponse),
           ),
         );
         break;
       }
       default:
-        text = this.modalHidden ? 'Mirando el campo.' : 'Decide…';
-        if (this.modalHidden) btns.push(this.button('Volver a la decisión', () => (this.modalHidden = false), 'go'));
+        text = this.modalHidden ? 'Looking at the field.' : 'Your decision…';
+        if (this.modalHidden) btns.push(this.button('Back to decision', () => (this.modalHidden = false), 'go'));
     }
     return `<div class="bar"><span class="btxt">${esc(text)}</span><span class="bbtns">${btns.join('')}</span></div>`;
   }
@@ -607,7 +607,7 @@ export class DuelClient {
     if (!p || this.sent || this.ended || this.modalHidden) return '';
     const body = this.promptBody(p);
     if (!body) return '';
-    return `<div class="modal"><div class="mbox">${body}<div class="mfoot">${this.button('Ver campo', () => (this.modalHidden = true), 'ghost')}</div></div></div>`;
+    return `<div class="modal"><div class="mbox">${body}<div class="mfoot">${this.button('View field', () => (this.modalHidden = true), 'ghost')}</div></div></div>`;
   }
 
   private title(fallback: string): string {
@@ -617,8 +617,8 @@ export class DuelClient {
 
   private locLabel(c: { controller: number; location: number; sequence: number; position?: number }): string {
     const me = this.u!.view.you;
-    const who = c.controller === me ? 'Tuya' : 'Rival';
-    const where = c.location === 4 ? `M${c.sequence + 1}` : c.location === 8 ? (c.sequence === 5 ? 'Campo' : `M/T${c.sequence + 1}`) : (LOCATION_NAME[c.location] ?? '');
+    const who = c.controller === me ? 'Yours' : 'Opponent';
+    const where = c.location === 4 ? `M${c.sequence + 1}` : c.location === 8 ? (c.sequence === 5 ? 'Field' : `S/T${c.sequence + 1}`) : (LOCATION_NAME[c.location] ?? '');
     return `${who} · ${where}`;
   }
 
@@ -628,7 +628,7 @@ export class DuelClient {
       .map((c, i) => {
         const onField = c.location === 4 || c.location === 8;
         const pos = onField ? (c.position ?? this.cardAt(this.u!.view, key(c.controller, c.location, c.sequence))?.position) : undefined;
-        return `<button class="gi ${isPicked(i) ? 'picked' : ''}" ${this.h(() => onTap(i))}>${miniCard(c.code, { position: pos && (pos & 0xa) && c.code ? 8 : 1 })}<span class="gl">${esc(c.code ? cardName(c.code) : 'Boca abajo')}</span><span class="gs">${esc(this.locLabel(c))}</span>${extra ? extra(i) : ''}</button>`;
+        return `<button class="gi ${isPicked(i) ? 'picked' : ''}" ${this.h(() => onTap(i))}>${miniCard(c.code, { position: pos && (pos & 0xa) && c.code ? 8 : 1 })}<span class="gl">${esc(c.code ? cardName(c.code) : 'Face-down')}</span><span class="gs">${esc(this.locLabel(c))}</span>${extra ? extra(i) : ''}</button>`;
       })
       .join('')}</div>`;
   }
@@ -644,11 +644,11 @@ export class DuelClient {
     const R = OcgResponseType;
     const T = OcgMessageType;
     const yesNo = (type: OcgResponseType.SELECT_EFFECTYN | OcgResponseType.SELECT_YESNO) =>
-      `<div class="mbtns">${this.button('Sí', () => this.respond({ type, yes: true } as OcgResponse), 'go')}${this.button('No', () => this.respond({ type, yes: false } as OcgResponse))}</div>`;
+      `<div class="mbtns">${this.button('Yes', () => this.respond({ type, yes: true } as OcgResponse), 'go')}${this.button('No', () => this.respond({ type, yes: false } as OcgResponse))}</div>`;
     switch (p.type) {
       case T.SELECT_CHAIN: {
-        const head = p.forced ? 'Elige el efecto que se activa' : '¿Quieres encadenar una carta o efecto?';
-        const chainInfo = this.u!.view.chain.length ? `<p class="muted">Cadena actual: ${this.u!.view.chain.map((c) => esc(cardName(c.code))).join(' → ')}</p>` : '';
+        const head = p.forced ? 'Choose the effect to activate' : 'Chain a card or effect?';
+        const chainInfo = this.u!.view.chain.length ? `<p class="muted">Current chain: ${this.u!.view.chain.map((c) => esc(cardName(c.code))).join(' → ')}</p>` : '';
         const list = p.selects
           .map((c, i) => `<button class="opt" ${this.h(() => this.respond({ type: R.SELECT_CHAIN, index: i }))}>${miniCard(c.code, { cls: 'xs' })}<span><b>${esc(cardName(c.code))}</b><br><small>${esc(this.effectText(c.code, c.description))}</small></span></button>`)
           .join('');
@@ -658,7 +658,7 @@ export class DuelClient {
       case T.SELECT_EFFECTYN: {
         const name = cardName(p.code);
         const loc = LOCATION_NAME[p.location] ?? '';
-        const text = !p.description ? fmt(sys(200), loc, name) : p.description === 221n ? fmt(sys(221), loc, name) : fmt(descText(p.description), name);
+        const text = !p.description ? fmt(sys(200), name, loc) : p.description === 221n ? fmt(sys(221), name, loc) : fmt(descText(p.description), name);
         return `<div class="ask">${miniCard(p.code, { cls: 'sm' })}<p>${esc(text)}</p></div>${yesNo(R.SELECT_EFFECTYN)}`;
       }
       case T.SELECT_YESNO:
@@ -672,15 +672,15 @@ export class DuelClient {
         const total = this.picks.reduce((a, i) => a + weight(i), 0);
         const ok = tribute ? total >= p.min && this.picks.length <= p.max : this.picks.length >= p.min && this.picks.length <= p.max;
         const range = p.min === p.max ? `${p.min}` : `${p.min}–${p.max}`;
-        const accept = this.button(`Aceptar (${this.picks.length})`, () => ok && this.respond({ type: tribute ? R.SELECT_TRIBUTE : R.SELECT_CARD, indicies: [...this.picks] } as OcgResponse), ok ? 'go' : 'off');
-        const cancel = p.can_cancel ? this.button('Cancelar', () => this.respond({ type: tribute ? R.SELECT_TRIBUTE : R.SELECT_CARD, indicies: null } as OcgResponse)) : '';
-        return `${this.title(tribute ? sys(531) : sys(560))}<p class="muted">Elige ${range}.</p>${this.cardGrid(p.selects, (i) => this.picks.includes(i), (i) => this.togglePick(i, p.max))}<div class="mbtns">${accept}${cancel}</div>`;
+        const accept = this.button(`OK (${this.picks.length})`, () => ok && this.respond({ type: tribute ? R.SELECT_TRIBUTE : R.SELECT_CARD, indicies: [...this.picks] } as OcgResponse), ok ? 'go' : 'off');
+        const cancel = p.can_cancel ? this.button('Cancel', () => this.respond({ type: tribute ? R.SELECT_TRIBUTE : R.SELECT_CARD, indicies: null } as OcgResponse)) : '';
+        return `${this.title(tribute ? sys(531) : sys(560))}<p class="muted">Choose ${range}.</p>${this.cardGrid(p.selects, (i) => this.picks.includes(i), (i) => this.togglePick(i, p.max))}<div class="mbtns">${accept}${cancel}</div>`;
       }
       case T.SELECT_UNSELECT_CARD: {
         const all = [...p.select_cards, ...p.unselect_cards];
         const n = p.select_cards.length;
-        const btns = [p.can_finish ? this.button('Terminar', () => this.respond({ type: R.SELECT_UNSELECT_CARD, index: null }), 'go') : '', p.can_cancel ? this.button('Cancelar', () => this.respond({ type: R.SELECT_UNSELECT_CARD, index: null })) : ''].join('');
-        return `${this.title(sys(560))}<p class="muted">Elige ${p.min === p.max ? p.min : `${p.min}–${p.max}`}. Las marcadas ya están elegidas (tócalas para quitarlas).</p>${this.cardGrid(all, (i) => i >= n, (i) => this.respond({ type: R.SELECT_UNSELECT_CARD, index: i }))}<div class="mbtns">${btns}</div>`;
+        const btns = [p.can_finish ? this.button('Finish', () => this.respond({ type: R.SELECT_UNSELECT_CARD, index: null }), 'go') : '', p.can_cancel ? this.button('Cancel', () => this.respond({ type: R.SELECT_UNSELECT_CARD, index: null })) : ''].join('');
+        return `${this.title(sys(560))}<p class="muted">Choose ${p.min === p.max ? p.min : `${p.min}–${p.max}`}. Highlighted cards are already chosen (tap to remove them).</p>${this.cardGrid(all, (i) => i >= n, (i) => this.respond({ type: R.SELECT_UNSELECT_CARD, index: i }))}<div class="mbtns">${btns}</div>`;
       }
       case T.SELECT_SUM: {
         const must = p.selects_must;
@@ -696,9 +696,9 @@ export class DuelClient {
         };
         const ss = sums(this.picks);
         const ok = p.select_max ? ss.some((s) => s >= p.amount) : ss.includes(p.amount);
-        const mustHtml = must.length ? `<p class="muted">Obligatorias: ${must.map((c) => esc(cardName(c.code))).join(', ')}</p>` : '';
-        const accept = this.button('Aceptar', () => ok && this.respond({ type: R.SELECT_SUM, indicies: this.picks.map((i) => i + must.length) } as OcgResponse), ok ? 'go' : 'off');
-        return `${this.title(sys(560))}<p class="muted">La suma debe ser ${p.select_max ? 'al menos ' : ''}${p.amount}.</p>${mustHtml}${this.cardGrid(
+        const mustHtml = must.length ? `<p class="muted">Required: ${must.map((c) => esc(cardName(c.code))).join(', ')}</p>` : '';
+        const accept = this.button('OK', () => ok && this.respond({ type: R.SELECT_SUM, indicies: this.picks.map((i) => i + must.length) } as OcgResponse), ok ? 'go' : 'off');
+        return `${this.title(sys(560))}<p class="muted">The total must be ${p.select_max ? 'at least ' : ''}${p.amount}.</p>${mustHtml}${this.cardGrid(
           p.selects,
           (i) => this.picks.includes(i),
           (i) => this.togglePick(i, 99),
@@ -712,12 +712,12 @@ export class DuelClient {
       case T.SORT_CARD:
       case T.SORT_CHAIN: {
         const done = this.picks.length === p.cards.length;
-        return `${this.title(p.type === T.SORT_CHAIN ? sys(206) : sys(205))}<p class="muted">Toca las cartas en orden.</p>${this.cardGrid(
+        return `${this.title(p.type === T.SORT_CHAIN ? sys(206) : sys(205))}<p class="muted">Tap the cards in order.</p>${this.cardGrid(
           p.cards,
           (i) => this.picks.includes(i),
           (i) => !this.picks.includes(i) && this.picks.push(i),
           (i) => (this.picks.includes(i) ? `<span class="gv">${this.picks.indexOf(i) + 1}</span>` : ''),
-        )}<div class="mbtns">${this.button('Aceptar', () => done && this.respond({ type: R.SORT_CARD, order: [...this.picks] }), done ? 'go' : 'off')}${this.button('Reiniciar', () => (this.picks = []))}${this.button('Por defecto', () => this.respond({ type: R.SORT_CARD, order: null }))}</div>`;
+        )}<div class="mbtns">${this.button('OK', () => done && this.respond({ type: R.SORT_CARD, order: [...this.picks] }), done ? 'go' : 'off')}${this.button('Reset', () => (this.picks = []))}${this.button('Default', () => this.respond({ type: R.SORT_CARD, order: null }))}</div>`;
       }
       case T.SELECT_COUNTER: {
         const total = this.counters.reduce((a, b) => a + b, 0);
@@ -725,29 +725,29 @@ export class DuelClient {
         const rows = p.cards
           .map(
             (c, i) =>
-              `<div class="crow">${miniCard(c.code, { cls: 'xs' })}<span>${esc(cardName(c.code))}<br><small>${c.count} disponibles</small></span>${this.button('−', () => (this.counters[i] = Math.max(0, this.counters[i] - 1)))}<b>${this.counters[i]}</b>${this.button('+', () => (this.counters[i] = Math.min(c.count, this.counters[i] + 1)))}</div>`,
+              `<div class="crow">${miniCard(c.code, { cls: 'xs' })}<span>${esc(cardName(c.code))}<br><small>${c.count} available</small></span>${this.button('−', () => (this.counters[i] = Math.max(0, this.counters[i] - 1)))}<b>${this.counters[i]}</b>${this.button('+', () => (this.counters[i] = Math.min(c.count, this.counters[i] + 1)))}</div>`,
           )
           .join('');
-        return `<h2>Quita ${p.count} ${esc(counterName(p.counter_type))}</h2>${rows}<div class="mbtns">${this.button(`Aceptar (${total}/${p.count})`, () => ok && this.respond({ type: R.SELECT_COUNTER, counters: [...this.counters] }), ok ? 'go' : 'off')}</div>`;
+        return `<h2>Remove ${p.count} ${esc(counterName(p.counter_type))}</h2>${rows}<div class="mbtns">${this.button(`OK (${total}/${p.count})`, () => ok && this.respond({ type: R.SELECT_COUNTER, counters: [...this.counters] }), ok ? 'go' : 'off')}</div>`;
       }
       case T.ROCK_PAPER_SCISSORS:
-        return `<h2>Piedra, papel o tijera</h2><div class="mbtns">${[2, 3, 1].map((v) => this.button(RPS[v], () => this.respond({ type: R.ROCK_PAPER_SCISSORS, value: v as 1 | 2 | 3 }), 'go')).join('')}</div>`;
+        return `<h2>Rock, paper, scissors</h2><div class="mbtns">${[2, 3, 1].map((v) => this.button(RPS[v], () => this.respond({ type: R.ROCK_PAPER_SCISSORS, value: v as 1 | 2 | 3 }), 'go')).join('')}</div>`;
       case T.ANNOUNCE_RACE: {
         const avail = bitsOf(p.available);
         const ok = this.picks.length === p.count;
         return `${this.title(sys(563))}<div class="chips">${avail
           .map((b) => `<button class="chipbtn ${this.picks.includes(b) ? 'picked' : ''}" ${this.h(() => this.togglePick(b, p.count))}>${esc(raceName(1n << BigInt(b)))}</button>`)
-          .join('')}</div><div class="mbtns">${this.button('Aceptar', () => ok && this.respond({ type: R.ANNOUNCE_RACE, races: this.picks.map((b) => 1n << BigInt(b)) } as OcgResponse), ok ? 'go' : 'off')}</div>`;
+          .join('')}</div><div class="mbtns">${this.button('OK', () => ok && this.respond({ type: R.ANNOUNCE_RACE, races: this.picks.map((b) => 1n << BigInt(b)) } as OcgResponse), ok ? 'go' : 'off')}</div>`;
       }
       case T.ANNOUNCE_ATTRIB: {
         const avail = bitsOf(p.available);
         const ok = this.picks.length === p.count;
         return `${this.title(sys(562))}<div class="chips">${avail
           .map((b) => `<button class="chipbtn ${this.picks.includes(b) ? 'picked' : ''}" ${this.h(() => this.togglePick(b, p.count))}>${esc(attributeName(1 << b))}</button>`)
-          .join('')}</div><div class="mbtns">${this.button('Aceptar', () => ok && this.respond({ type: R.ANNOUNCE_ATTRIB, attributes: this.picks.map((b) => 1 << b) } as OcgResponse), ok ? 'go' : 'off')}</div>`;
+          .join('')}</div><div class="mbtns">${this.button('OK', () => ok && this.respond({ type: R.ANNOUNCE_ATTRIB, attributes: this.picks.map((b) => 1 << b) } as OcgResponse), ok ? 'go' : 'off')}</div>`;
       }
       case T.ANNOUNCE_CARD:
-        return `${this.title(sys(564))}<input id="announce-q" class="search" placeholder="Escribe el nombre…" value="${esc(this.announceQuery)}" autocomplete="off"><div id="announce-results" class="results">${this.announceResults()}</div>`;
+        return `${this.title(sys(564))}<input id="announce-q" class="search" placeholder="Type the name…" value="${esc(this.announceQuery)}" autocomplete="off"><div id="announce-results" class="results">${this.announceResults()}</div>`;
       case T.ANNOUNCE_NUMBER:
         return `${this.title(sys(565))}<div class="mbtns wrap">${p.options.map((o, i) => this.button(String(o), () => this.respond({ type: R.ANNOUNCE_NUMBER, value: i }))).join('')}</div>`;
     }
@@ -756,18 +756,18 @@ export class DuelClient {
 
   private announceResults(): string {
     const q = this.announceQuery.trim().toLowerCase();
-    if (q.length < 2) return '<p class="muted">Escribe al menos 2 letras.</p>';
+    if (q.length < 2) return '<p class="muted">Type at least 2 letters.</p>';
     const hits = allPoolCodes()
       .filter((c) => cardName(c).toLowerCase().includes(q))
       .slice(0, 40);
-    if (!hits.length) return '<p class="muted">Sin resultados.</p>';
+    if (!hits.length) return '<p class="muted">No results.</p>';
     return hits.map((c) => `<button class="opt" ${this.h(() => this.respond({ type: OcgResponseType.ANNOUNCE_CARD, card: c }))}>${miniCard(c, { cls: 'xs' })}<span>${esc(cardName(c))}</span></button>`).join('');
   }
 
   private effectText(code: number, description: bigint): string {
-    if (!description) return 'Activar';
+    if (!description) return 'Activate';
     const d = descText(description);
-    return d.startsWith('Efecto de') ? `Efecto de ${cardName(code)}` : d;
+    return d.startsWith('Effect of') ? `Effect of ${cardName(code)}` : d;
   }
 
   // ---------- paneles ----------
@@ -776,7 +776,7 @@ export class DuelClient {
     const s = this.sheet;
     if (!s) return '';
     const v = this.u!.view;
-    const close = this.button('Cerrar', () => (this.sheet = null), 'ghost');
+    const close = this.button('Close', () => (this.sheet = null), 'ghost');
     let body = '';
     switch (s.kind) {
       case 'detail': {
@@ -804,26 +804,26 @@ export class DuelClient {
             return miniCard(c.code, { cls: this.zoneActions.has(k) ? 'hl' : '', data: `data-z="${k}"`, position: (c.position & 0xa) && c.code ? 8 : 1 });
           })
           .join('');
-        const note = loc === 1 ? '<p class="muted">El mazo está boca abajo.</p>' : loc === 64 && pp !== v.you ? '<p class="muted">No puedes ver el Extra Deck del rival.</p>' : !list.length ? '<p class="muted">Vacío.</p>' : '';
+        const note = loc === 1 ? '<p class="muted">The Deck is face-down.</p>' : loc === 64 && pp !== v.you ? `<p class="muted">You can't see your opponent's Extra Deck.</p>` : !list.length ? '<p class="muted">Empty.</p>' : '';
         body = `<h2>${esc(title)} (${count})</h2>${note}<div class="pilegrid">${items}</div>`;
         break;
       }
       case 'chain':
-        body = `<h2>Cadena</h2><div class="opts">${v.chain
+        body = `<h2>Chain</h2><div class="opts">${v.chain
           .map((c, i) => `<div class="opt">${miniCard(c.code, { cls: 'xs' })}<span><b>${i + 1}. ${esc(cardName(c.code))}</b><br><small>${esc(this.nameOf(c.controller))}</small></span></div>`)
           .join('')}</div>`;
         break;
       case 'log':
-        body = `<h2>Registro del duelo</h2><div class="log">${this.logLines
+        body = `<h2>Duel log</h2><div class="log">${this.logLines
           .slice()
           .reverse()
           .map((l) => `<div>${esc(l)}</div>`)
           .join('')}</div>`;
         break;
       case 'menu':
-        body = `<h2>Menú</h2><div class="mbtns col">${this.button('Registro del duelo', () => (this.sheet = { kind: 'log' }))}${
-          this.ended ? '' : this.button('Rendirse', () => this.surrender(), 'danger')
-        }${this.button('Salir al menú principal', () => this.opts.onExit())}</div>`;
+        body = `<h2>Menu</h2><div class="mbtns col">${this.button('Duel log', () => (this.sheet = { kind: 'log' }))}${
+          this.ended ? '' : this.button('Surrender', () => this.surrender(), 'danger')
+        }${this.button('Quit to main menu', () => this.opts.onExit())}</div>`;
         break;
     }
     return `<div class="sheet-bg" ${this.h(() => (this.sheet = null))}></div><div class="sheet">${body}<div class="mfoot">${close}</div></div>`;
@@ -833,13 +833,13 @@ export class DuelClient {
     if (!this.ended || this.endHidden) return '';
     const v = this.u!.view;
     const w = this.ended.winner;
-    let title = 'Empate';
-    if (w !== null) title = this.opts.hotseat ? `Gana ${this.nameOf(w)}` : w === v.you ? '¡Victoria!' : 'Derrota';
-    return `<div class="modal end"><div class="mbox"><h1>${esc(title)}</h1><p>${esc(this.ended.reason)}</p><div class="mbtns col">${this.button('Ver el campo', () => (this.endHidden = true))}${this.button('Volver al menú', () => this.opts.onExit(), 'go')}</div></div></div>`;
+    let title = 'Draw';
+    if (w !== null) title = this.opts.hotseat ? `${this.nameOf(w)} wins` : w === v.you ? 'Victory!' : 'Defeat';
+    return `<div class="modal end"><div class="mbox"><h1>${esc(title)}</h1><p>${esc(this.ended.reason)}</p><div class="mbtns col">${this.button('View field', () => (this.endHidden = true))}${this.button('Back to menu', () => this.opts.onExit(), 'go')}</div></div></div>`;
   }
 }
 
-const RPS: Record<number, string> = { 1: 'Tijera', 2: 'Piedra', 3: 'Papel' };
+const RPS: Record<number, string> = { 1: 'Scissors', 2: 'Rock', 3: 'Paper' };
 
 /** Texto de una pista de selección sin los huecos "%ls" que no tenemos. */
 const hintText = (t: string) => fmt(t, '').replace(/\s*["「[]\s*["」\]]/g, '');

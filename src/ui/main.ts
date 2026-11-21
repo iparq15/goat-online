@@ -1,13 +1,15 @@
-// GOAT Online: menú, preparación del duelo de práctica y el modo de dos jugadores en el
-// mismo móvil (cada jugador ve solo su lado; opcionalmente se tapa la pantalla al pasar el
-// móvil).
+// GOAT Online: menú, mis mazos, preparación del duelo de práctica y el modo de dos jugadores
+// en el mismo móvil (cada jugador ve solo su lado; opcionalmente se tapa la pantalla al pasar
+// el móvil).
 
 import '@fontsource/press-start-2p/400.css';
 import '@fontsource/pixelify-sans/400.css';
 import '@fontsource/pixelify-sans/600.css';
 import './style.css';
-import { parseYdk, validateDeck, type Deck } from '../engine/ydk.ts';
+import { validateDeck, type Deck } from '../engine/ydk.ts';
 import { loadAssets, type Assets } from './assets.ts';
+import { showDeckList } from './deck-editor.ts';
+import { listDecks, migrateLegacy } from './deck-store.ts';
 import { DuelClient } from './duel-client.ts';
 import { LocalHost } from './local-host.ts';
 import { STARTER_DECKS, type NamedDeck } from './starter-decks.ts';
@@ -16,11 +18,11 @@ import { esc, initText } from './text.ts';
 const app = document.getElementById('app')!;
 let assets: Assets;
 
-const store = {
+const prefs = {
   get<T>(k: string, def: T): T {
     try {
       const v = localStorage.getItem(`goat.${k}`);
-      return v ? (JSON.parse(v) as T) : def;
+      return v ? { ...def, ...(JSON.parse(v) as T) } : def;
     } catch {
       return def;
     }
@@ -34,95 +36,105 @@ const store = {
   },
 };
 
+/** Cada pantalla limpia los manejadores de la anterior. */
+function fresh(): void {
+  app.onclick = null;
+  app.oninput = null;
+  app.onchange = null;
+}
+
 // ---------- carga ----------
 
 async function boot(): Promise<void> {
-  app.innerHTML = `<div class="screen center"><div class="logo">GOAT<br><span>ONLINE</span></div><div class="loadbar"><i id="lb"></i></div><p class="muted" id="lt">Cargando cartas…</p></div>`;
+  app.innerHTML = `<div class="screen center"><div class="logo">GOAT<br><span>ONLINE</span></div><div class="loadbar"><i id="lb"></i></div><p class="muted">Loading cards…</p></div>`;
   try {
     assets = await loadAssets((done, total) => {
       const lb = document.getElementById('lb');
       if (lb) lb.style.width = `${(done / total) * 100}%`;
     });
     initText(assets.data, assets.strings);
+    await migrateLegacy();
     menu();
   } catch (e) {
-    app.innerHTML = `<div class="screen center"><h2>No se pudo cargar</h2><p>${esc(String(e))}</p><button class="btn go" onclick="location.reload()">Reintentar</button></div>`;
+    app.innerHTML = `<div class="screen center"><h2>Couldn't load</h2><p>${esc(String(e))}</p><button class="btn go" onclick="location.reload()">Retry</button></div>`;
   }
 }
 
 // ---------- menú ----------
 
 function menu(): void {
+  fresh();
   app.innerHTML = `<div class="screen center menu">
     <div class="logo">GOAT<br><span>ONLINE</span></div>
-    <p class="tag">Duelos en formato GOAT · lista de abril de 2005</p>
+    <p class="tag">GOAT format duels · April 2005 banlist</p>
     <div class="mbtns col">
-      <button class="btn go big" id="m-practice">Duelo de práctica</button>
-      <button class="btn big off" disabled>Duelo online <small>(pronto)</small></button>
-      <button class="btn big off" disabled>Mis mazos <small>(pronto)</small></button>
+      <button class="btn go big" id="m-practice">Practice duel</button>
+      <button class="btn big" id="m-decks">My decks</button>
+      <button class="btn big off" disabled>Online duel <small>(soon)</small></button>
     </div>
-    <p class="credits">Proyecto de fans, sin relación con Konami. Motor: ygopro-core (EDOPro) y scripts de Project Ignis, bajo AGPL-3.0. <a href="https://github.com/iparq15/goat-online" target="_blank" rel="noopener">Código fuente</a>.</p>
+    <p class="credits">Fan project, not affiliated with Konami. Engine: ygopro-core (EDOPro) and Project Ignis card scripts, under AGPL-3.0. <a href="https://github.com/iparq15/goat-online" target="_blank" rel="noopener">Source code</a>.</p>
   </div>`;
-  document.getElementById('m-practice')!.onclick = practiceSetup;
+  document.getElementById('m-practice')!.onclick = () => void practiceSetup();
+  document.getElementById('m-decks')!.onclick = decks;
+}
+
+function decks(): void {
+  fresh();
+  void showDeckList({ el: app, data: assets.data, onBack: menu });
 }
 
 // ---------- preparación del duelo de práctica ----------
 
-function allDecks(): NamedDeck[] {
-  return [...STARTER_DECKS, ...store.get<NamedDeck[]>('imported', [])];
-}
-
-function practiceSetup(): void {
-  const decks = allDecks();
-  const prefs = store.get('practice', { names: ['Jugador 1', 'Jugador 2'], decks: [0, 1], curtain: false });
-  const opts = (sel: number) => decks.map((d, i) => `<option value="${i}" ${i === sel ? 'selected' : ''}>${esc(d.name)}</option>`).join('');
+async function practiceSetup(): Promise<void> {
+  fresh();
+  const mine = (await listDecks()).map((d): NamedDeck => ({ name: d.name, deck: d.deck }));
+  const all: NamedDeck[] = [...mine, ...STARTER_DECKS];
+  const legal = all.map((d) => validateDeck(d.deck, assets.data).length === 0);
+  const p = prefs.get('practice', { names: ['Player 1', 'Player 2'], deckNames: ['', ''], curtain: false });
+  const pick = (i: number) => {
+    const byName = all.findIndex((d, k) => d.name === p.deckNames[i] && legal[k]);
+    if (byName >= 0) return byName;
+    const firstStarter = mine.length + (i % STARTER_DECKS.length);
+    return firstStarter;
+  };
+  const opts = (sel: number) =>
+    all
+      .map((d, i) => `<option value="${i}" ${i === sel ? 'selected' : ''} ${legal[i] ? '' : 'disabled'}>${esc(d.name)}${i >= mine.length ? ' (starter)' : ''}${legal[i] ? '' : ' — not legal'}</option>`)
+      .join('');
   app.innerHTML = `<div class="screen setup">
-    <h1>Duelo de práctica</h1>
-    <p class="muted">Los dos jugadores en este móvil. La pantalla gira hacia quien tiene que decidir.</p>
+    <h1>Practice duel</h1>
+    <p class="muted">Both players on this phone. The screen turns to whoever has to decide.</p>
     ${[0, 1]
       .map(
-        (i) => `<fieldset><legend>Jugador ${i + 1}</legend>
-      <label>Nombre <input id="n${i}" maxlength="16" value="${esc(prefs.names[i] ?? `Jugador ${i + 1}`)}"></label>
-      <label>Mazo <select id="d${i}">${opts(Math.min(prefs.decks[i] ?? i, decks.length - 1))}</select></label></fieldset>`,
+        (i) => `<fieldset><legend>Player ${i + 1}</legend>
+      <label>Name <input id="n${i}" maxlength="16" value="${esc(p.names[i] || `Player ${i + 1}`)}"></label>
+      <label>Deck <select id="d${i}">${opts(pick(i))}</select></label></fieldset>`,
       )
       .join('')}
-    <label class="check"><input type="checkbox" id="curtain" ${prefs.curtain ? 'checked' : ''}> Tapar la pantalla al cambiar de jugador (para no ver la mano del otro)</label>
+    <label class="check"><input type="checkbox" id="curtain" ${p.curtain ? 'checked' : ''}> Cover the screen when switching players (so you can't see the other hand)</label>
     <div class="mbtns col">
-      <button class="btn go big" id="start">¡A jugar!</button>
-      <label class="btn">Importar mazo .ydk<input type="file" id="ydk" accept=".ydk,text/plain" hidden></label>
-      <button class="btn ghost" id="back">Volver</button>
+      <button class="btn go big" id="start">Duel!</button>
+      <button class="btn" id="edit">Edit my decks</button>
+      <button class="btn ghost" id="back">Back</button>
     </div>
-    <p id="msg" class="msg"></p>
   </div>`;
   const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
   $('back').onclick = menu;
-  $<HTMLInputElement>('ydk').onchange = async (e) => {
-    const f = (e.target as HTMLInputElement).files?.[0];
-    if (!f) return;
-    const deck = parseYdk(await f.text());
-    const problems = validateDeck(deck, assets.data);
-    if (problems.length) {
-      $('msg').innerHTML = `<b>${esc(f.name)} no es legal en GOAT:</b><br>${problems.slice(0, 6).map(esc).join('<br>')}`;
-      return;
-    }
-    const imported = store.get<NamedDeck[]>('imported', []);
-    imported.push({ name: f.name.replace(/\.ydk$/i, ''), deck });
-    store.set('imported', imported);
-    practiceSetup();
-  };
+  $('edit').onclick = decks;
   $('start').onclick = () => {
-    const names = [0, 1].map((i) => $<HTMLInputElement>(`n${i}`).value.trim() || `Jugador ${i + 1}`) as [string, string];
+    const names = [0, 1].map((i) => $<HTMLInputElement>(`n${i}`).value.trim() || `Player ${i + 1}`) as [string, string];
     const idx = [0, 1].map((i) => Number($<HTMLSelectElement>(`d${i}`).value));
     const curtain = $<HTMLInputElement>('curtain').checked;
-    store.set('practice', { names, decks: idx, curtain });
-    void startPractice(names, [decks[idx[0]].deck, decks[idx[1]].deck], curtain);
+    prefs.set('practice', { names, deckNames: idx.map((i) => all[i].name), curtain });
+    void startPractice(names, [all[idx[0]].deck, all[idx[1]].deck], curtain);
   };
 }
 
 // ---------- duelo en el mismo móvil ----------
 
 async function startPractice(names: [string, string], decks: [Deck, Deck], curtain: boolean): Promise<void> {
-  app.innerHTML = `<div class="screen center"><p class="muted">Barajando…</p></div>`;
+  fresh();
+  app.innerHTML = `<div class="screen center"><p class="muted">Shuffling…</p></div>`;
   const core = await assets.core();
   const host = new LocalHost(core, assets.data, decks, names);
   app.innerHTML = `<div class="hotseat"><div id="s0" class="seat"></div><div id="s1" class="seat"></div><div id="curtain" class="curtain" hidden></div></div>`;
@@ -156,7 +168,7 @@ async function startPractice(names: [string, string], decks: [Deck, Deck], curta
       if (deciding === undefined || deciding === shown) return;
       if (curtain) {
         curtainEl.hidden = false;
-        curtainEl.innerHTML = `<div class="ctext">Pásale el móvil a<br><b>${esc(names[deciding])}</b><br><small>Toca para continuar</small></div>`;
+        curtainEl.innerHTML = `<div class="ctext">Pass the phone to<br><b>${esc(names[deciding])}</b><br><small>Tap to continue</small></div>`;
         curtainEl.onclick = () => {
           curtainEl.hidden = true;
           show(deciding);

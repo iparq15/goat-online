@@ -21,7 +21,7 @@ export const card = (code: number): CardInfo | undefined => data.cards.get(code)
 
 /** Nombre sin el sufijo de versión ("(GOAT)", "(Pre-Errata)"). */
 export function cardName(code: number): string {
-  if (!code) return 'Carta boca abajo';
+  if (!code) return 'Face-down card';
   const c = data.cards.get(code);
   return c ? c.name.replace(/\s*\((GOAT|Pre-Errata)\)\s*$/i, '') : `#${code}`;
 }
@@ -38,7 +38,7 @@ export function descText(desc: bigint | number): string {
   const own = c?.strings[idx];
   if (own) return own;
   const alias = c?.alias ? data.cards.get(c.alias)?.strings[idx] : undefined;
-  return alias || `Efecto de ${cardName(code)}`;
+  return alias || `Effect of ${cardName(code)}`;
 }
 
 /** Sustituye los %ls / %d de los textos de EDOPro. */
@@ -49,7 +49,7 @@ export function fmt(text: string, ...args: (string | number)[]): string {
 
 const bitIndex = (v: number) => (v > 0 ? Math.log2(v & -v) : -1);
 
-export const ATTRIBUTE_SHORT: Record<number, string> = { 1: 'TIE', 2: 'AGU', 4: 'FUE', 8: 'VIE', 16: 'LUZ', 32: 'OSC', 64: 'DIV' };
+export const ATTRIBUTE_SHORT: Record<number, string> = { 1: 'EAR', 2: 'WAT', 4: 'FIR', 8: 'WIN', 16: 'LIG', 32: 'DAR', 64: 'DIV' };
 export const attributeName = (a: number) => (a ? sys(1010 + bitIndex(a)) : '');
 
 export function raceName(race: bigint | number): string {
@@ -77,14 +77,14 @@ export function typeLine(c: CardInfo): string {
     parts.push(t & 0x20 ? sys(1055) : t & 0x4000 ? '' : sys(1054));
     return parts.filter(Boolean).join(' / ');
   }
-  const kind = t & 0x2 ? 'Magia' : 'Trampa';
+  const kind = t & 0x2 ? 'Spell' : 'Trap';
   const sub = spellSub(t);
-  return sub ? `${kind} ${sub.toLowerCase()}` : `${kind} normal`;
+  return sub ? `${sub} ${kind}` : `Normal ${kind}`;
 }
 
 export function spellSub(t: number): string {
   if (t & 0x10000) return sys(1066);
-  if (t & 0x20000) return sys(1067).replace('Contínua', 'Continua');
+  if (t & 0x20000) return sys(1067);
   if (t & 0x40000) return sys(1068);
   if (t & 0x80000) return sys(1069);
   if (t & 0x100000) return sys(1070);
@@ -104,12 +104,12 @@ export function spellIcon(t: number): string {
 }
 
 export const PHASES: [number, string, string][] = [
-  [1, 'RB', 'Fase de robo'],
-  [2, 'ES', 'Fase de espera'],
-  [4, 'P1', 'Fase principal 1'],
-  [8, 'BA', 'Fase de batalla'],
-  [256, 'P2', 'Fase principal 2'],
-  [512, 'FN', 'Fase final'],
+  [1, 'DP', 'Draw Phase'],
+  [2, 'SP', 'Standby Phase'],
+  [4, 'M1', 'Main Phase 1'],
+  [8, 'BP', 'Battle Phase'],
+  [256, 'M2', 'Main Phase 2'],
+  [512, 'EP', 'End Phase'],
 ];
 
 /** Fase de batalla: todos los pasos se muestran como "BA". */
@@ -118,25 +118,25 @@ export function phaseKey(phase: number): number {
 }
 
 export const POSITION_NAME: Record<number, string> = {
-  1: 'Ataque boca arriba',
-  2: 'Ataque boca abajo',
-  4: 'Defensa boca arriba',
-  8: 'Defensa boca abajo',
+  1: 'Face-up Attack Position',
+  2: 'Face-down Attack Position',
+  4: 'Face-up Defense Position',
+  8: 'Face-down Defense Position',
 };
 
 export const LOCATION_NAME: Record<number, string> = {
-  1: 'Mazo',
-  2: 'Mano',
-  4: 'Zona de monstruos',
-  8: 'Zona de magias y trampas',
-  16: 'Cementerio',
-  32: 'Desterradas',
+  1: 'Deck',
+  2: 'Hand',
+  4: 'Monster Zone',
+  8: 'Spell & Trap Zone',
+  16: 'GY',
+  32: 'Banished',
   64: 'Extra Deck',
   128: 'Material',
-  256: 'Zona de campo',
+  256: 'Field Zone',
 };
 
-export const counterName = (t: number) => strings.counter[t] ?? strings.counter[t & 0xffff] ?? 'Contador';
+export const counterName = (t: number) => strings.counter[t] ?? strings.counter[t & 0xffff] ?? 'Counter';
 
 export const victoryText = (r: number) => strings.victory[r];
 

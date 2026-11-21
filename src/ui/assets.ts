@@ -20,7 +20,7 @@ let corePromise: Promise<OcgCoreSync> | null = null;
 
 const getJson = async <T>(url: string): Promise<T> => {
   const r = await fetch(url);
-  if (!r.ok) throw new Error(`No se pudo cargar ${url} (${r.status})`);
+  if (!r.ok) throw new Error(`Couldn't load ${url} (${r.status})`);
   return (await r.json()) as T;
 };
 

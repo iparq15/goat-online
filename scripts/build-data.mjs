@@ -1,7 +1,7 @@
 // Genera los datos del cardpool GOAT a partir de Project Ignis (EDOPro):
 //   data/goat/cards.json    cartas del pool + las que necesitan sus scripts (fichas, alias…)
 //   data/goat/scripts.json  scripts Lua de esas cartas + los scripts comunes (utility, constant…)
-//   data/goat/strings.json  textos del sistema de EDOPro (español con respaldo en inglés)
+//   data/goat/strings.json  textos del sistema de EDOPro (inglés)
 //   data/goat/lflist.json   límites GOAT (0 = prohibida, 1, 2, 3)
 //
 // Fuente: PROJECT_IGNIS (por defecto C:\ProjectIgnis). Se aplican encima las actualizaciones
@@ -135,7 +135,7 @@ for (const [name, p] of scriptFiles) {
 const missingScripts = cards.filter((c) => c.inPool && lflist[c.code] !== 0 && !(c.type & 0x4000) && !scripts[`c${c.code}.lua`] && (c.type & 0x1) === 0);
 
 
-// ---------- textos del sistema de EDOPro (español, con el inglés de respaldo) ----------
+// ---------- textos del sistema de EDOPro (inglés) ----------
 function readStrings(p) {
   const out = { system: {}, victory: {}, counter: {} };
   if (!existsSync(p)) return out;
@@ -145,10 +145,8 @@ function readStrings(p) {
   }
   return out;
 }
-const stringsEn = readStrings(join(SRC, 'config/strings.conf'));
-const stringsEs = readStrings(join(SRC, 'config/languages/Español/strings.conf'));
-const strings = {};
-for (const k of ['system', 'victory', 'counter']) strings[k] = { ...stringsEn[k], ...stringsEs[k] };
+// La app está en inglés: textos de config/strings.conf.
+const strings = readStrings(join(SRC, 'config/strings.conf'));
 
 mkdirSync(OUT, { recursive: true });
 writeFileSync(join(OUT, 'cards.json'), JSON.stringify(cards));
