@@ -41,9 +41,32 @@ La prueba comprueba en cada actualización que no hay fugas de información, y e
 respuestas fuera de turno y mal formadas, reconexión y reconstrucción de la sala (con
 `server/.dev.vars` = `DEBUG=1`).
 
+## Fase 3: interfaz del duelo (práctica en el mismo móvil)
+
+App web (Vite, TypeScript sin framework) con un tema propio de aire retro: pixel art, paleta
+limitada y fuentes de mapa de bits (Press Start 2P y Pixelify Sans, licencia OFL).
+
+- Las cartas no llevan ilustración: un marco por tipo de carta y un emblema pixel generado a partir
+  del código de cada carta (`src/ui/card-view.ts`).
+- El árbitro (`src/engine/arbiter.ts`) es el mismo para el servidor y para el duelo local, así que
+  la pantalla de duelo (`src/ui/duel-client.ts`) recibe exactamente los mismos mensajes en los dos
+  modos.
+- Duelo de práctica: los dos jugadores en el mismo móvil. La pantalla gira hacia quien tiene que
+  decidir; opcionalmente se tapa al cambiar de jugador.
+- Mazos de inicio legales en GOAT (`src/ui/starter-decks.ts`, comprobados con
+  `node scripts/check-starters.ts`) e importación de `.ydk`.
+- Textos del sistema en español tomados de EDOPro; los textos de las cartas, en inglés.
+
+```powershell
+npm run dev        # http://localhost:5180 (también desde el móvil en la misma red)
+npm run build      # dist/
+```
+
 ## Licencias
 
 - Este proyecto: **AGPL-3.0-or-later** ([LICENSE](LICENSE)).
 - ygopro-core y los scripts de cartas (CardScripts/DeltaBagooska) de Project Ignis: AGPL-3.0.
 - `ocgcore-wasm`: MIT.
+- Textos del sistema (`config/strings.conf` de EDOPro): Project Ignis.
+- Fuentes Press Start 2P y Pixelify Sans: SIL Open Font License.
 - Nombres y textos de las cartas: © Konami. La app no incluye ilustraciones de cartas.

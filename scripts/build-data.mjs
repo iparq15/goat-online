@@ -1,6 +1,7 @@
 // Genera los datos del cardpool GOAT a partir de Project Ignis (EDOPro):
 //   data/goat/cards.json    cartas del pool + las que necesitan sus scripts (fichas, alias…)
 //   data/goat/scripts.json  scripts Lua de esas cartas + los scripts comunes (utility, constant…)
+//   data/goat/strings.json  textos del sistema de EDOPro (español con respaldo en inglés)
 //   data/goat/lflist.json   límites GOAT (0 = prohibida, 1, 2, 3)
 //
 // Fuente: PROJECT_IGNIS (por defecto C:\ProjectIgnis). Se aplican encima las actualizaciones
@@ -133,9 +134,26 @@ for (const [name, p] of scriptFiles) {
 }
 const missingScripts = cards.filter((c) => c.inPool && lflist[c.code] !== 0 && !(c.type & 0x4000) && !scripts[`c${c.code}.lua`] && (c.type & 0x1) === 0);
 
+
+// ---------- textos del sistema de EDOPro (español, con el inglés de respaldo) ----------
+function readStrings(p) {
+  const out = { system: {}, victory: {}, counter: {} };
+  if (!existsSync(p)) return out;
+  for (const raw of readFileSync(p, 'utf8').split(/\r?\n/)) {
+    const m = raw.match(/^!(system|victory|counter)\s+(0x[0-9a-fA-F]+|\d+)\s+(.*)$/);
+    if (m) out[m[1]][Number(m[2])] = m[3].trim();
+  }
+  return out;
+}
+const stringsEn = readStrings(join(SRC, 'config/strings.conf'));
+const stringsEs = readStrings(join(SRC, 'config/languages/Español/strings.conf'));
+const strings = {};
+for (const k of ['system', 'victory', 'counter']) strings[k] = { ...stringsEn[k], ...stringsEs[k] };
+
 mkdirSync(OUT, { recursive: true });
 writeFileSync(join(OUT, 'cards.json'), JSON.stringify(cards));
 writeFileSync(join(OUT, 'scripts.json'), JSON.stringify(scripts));
+writeFileSync(join(OUT, 'strings.json'), JSON.stringify(strings));
 writeFileSync(join(OUT, 'lflist.json'), JSON.stringify({ name: listName, limits: lflist }));
 
 const kb = (f) => (statSync(join(OUT, f)).size / 1024).toFixed(0);

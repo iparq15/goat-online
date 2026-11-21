@@ -1,17 +1,15 @@
 // Durable Object: una sala de duelo y su árbitro.
 //
-// - Corre el motor (ocgcore) y manda a cada jugador SOLO lo que puede ver.
+// - Corre el motor (ocgcore) y manda a cada jugador SOLO lo que puede ver (src/engine/arbiter.ts).
 // - Los jugadores solo envían sus respuestas; las inválidas se rechazan (el motor pide
 //   repetir la decisión).
 // - Usa WebSocket Hibernation: si Cloudflare saca el objeto de memoria, el duelo se
 //   reconstruye repitiendo las respuestas guardadas (el motor es determinista).
 
 import { DurableObject } from 'cloudflare:workers';
-import type { OcgMessage, OcgResponse } from 'ocgcore-wasm';
+import type { OcgResponse } from 'ocgcore-wasm';
 import { decode, encode } from '../../src/codec.ts';
-import { GoatDuel } from '../../src/engine/duel.ts';
-import { filterEvent, sanitizePrompt } from '../../src/engine/visibility.ts';
-import { checkResponse } from '../../src/engine/validate.ts';
+import { Arbiter, randomSeed } from '../../src/engine/arbiter.ts';
 import { validateDeck, type Deck } from '../../src/engine/ydk.ts';
 import { PROTOCOL_VERSION, type ClientMsg, type ServerMsg } from '../../src/protocol.ts';
 import { getCore, getData } from './core.ts';
@@ -46,12 +44,7 @@ const MAX_MSG = 64 * 1024;
 export class DuelRoom extends DurableObject<Env> {
   private lobby: (Seat | null)[] = [null, null];
   private match: Match | null = null;
-  private duel: GoatDuel | null = null;
-  private responses = 0;
-  private pending: OcgMessage | null = null;
-  private retry = false;
-  /** Eventos pendientes de enviar a cada equipo. */
-  private outbox: [OcgMessage[], OcgMessage[]] = [[], []];
+  private arb: Arbiter | null = null;
   private ready: Promise<void>;
 
   constructor(ctx: DurableObjectState, env: Env) {
@@ -91,9 +84,8 @@ export class DuelRoom extends DurableObject<Env> {
       case 'debug-restore':
         // Simula que Cloudflare sacó el objeto de memoria: se reconstruye desde el almacenamiento.
         if (this.env.DEBUG !== '1') return;
-        this.duel?.destroy();
-        this.duel = null;
-        this.pending = null;
+        this.arb?.destroy();
+        this.arb = null;
         await this.restore();
         return;
       case 'surrender':
@@ -151,37 +143,27 @@ export class DuelRoom extends DurableObject<Env> {
   // ---------- duelo ----------
 
   private async start(): Promise<void> {
-    const rnd = new BigUint64Array(4);
-    crypto.getRandomValues(rnd);
-    if (rnd.every((x) => x === 0n)) rnd[0] = 1n;
     const firstSeat = crypto.getRandomValues(new Uint8Array(1))[0] & 1;
     this.match = {
       seats: [this.lobby[0]!, this.lobby[1]!],
       teamOfSeat: firstSeat === 0 ? [0, 1] : [1, 0],
-      seed: [...rnd].map(String) as Match['seed'],
+      seed: randomSeed().map(String) as Match['seed'],
       ended: null,
     };
     await this.ctx.storage.deleteAll();
     await this.ctx.storage.put('match', this.match);
     await this.build([]);
-    this.advance();
+    await this.advance();
   }
 
   /** Crea el motor del duelo y repite las respuestas dadas (reconstrucción). */
   private async build(replay: OcgResponse[]): Promise<void> {
     const m = this.match!;
-    const core = await getCore();
     const decks: [Deck, Deck] = [m.seats[0].deck, m.seats[1].deck];
     // decks[equipo]: el equipo 0 es el que empieza.
     const byTeam: [Deck, Deck] = m.teamOfSeat[0] === 0 ? decks : [decks[1], decks[0]];
-    this.duel?.destroy();
-    this.duel = new GoatDuel(core, getData(), { decks: byTeam, seed: m.seed.map(BigInt) as [bigint, bigint, bigint, bigint] });
-    this.responses = 0;
-    for (const r of replay) {
-      this.duel.step();
-      this.duel.respond(r);
-      this.responses++;
-    }
+    this.arb?.destroy();
+    this.arb = new Arbiter(await getCore(), getData(), byTeam, m.seed.map(BigInt) as [bigint, bigint, bigint, bigint], replay);
   }
 
   private async restore(): Promise<void> {
@@ -192,61 +174,38 @@ export class DuelRoom extends DurableObject<Env> {
     const stored = await this.ctx.storage.list<string>({ prefix: 'r:' });
     const replay = [...stored.values()].map((s) => decode<OcgResponse>(s));
     await this.build(replay);
-    this.advance(false);
+    await this.advance(false);
     // Tras reconstruir, cada jugador recibe el estado actual.
     for (const seat of [0, 1] as const) for (const ws of this.socketsOf(seat)) this.sendUpdate(seat, ws, true);
   }
 
   /** Avanza hasta la siguiente decisión y manda a cada jugador su actualización. */
-  private advance(broadcast = true): void {
-    const duel = this.duel!;
-    const r = duel.step();
-    for (const m of r.messages) {
-      for (const team of [0, 1] as const) {
-        const f = filterEvent(team, m);
-        if (f) this.outbox[team].push(f);
-      }
-    }
-    this.retry = r.retry;
-    this.pending = r.pending;
-    if (r.ended) {
-      const win = r.messages.find((m) => m.type === 5) as { player: number; reason: number } | undefined;
-      void this.finish(win ? ((win.player & 1) as 0 | 1) : null, winReason(win?.reason));
-      return;
-    }
+  private async advance(broadcast = true): Promise<void> {
+    const arb = this.arb!;
+    arb.advance();
+    if (arb.ended) return this.finish(arb.ended.winner, arb.ended.reason);
     if (broadcast) for (const seat of [0, 1] as const) for (const ws of this.socketsOf(seat)) this.sendUpdate(seat, ws, false);
-    this.outbox = [[], []];
+    arb.flush();
   }
 
   private async onRespond(seat: 0 | 1, seq: number, raw: unknown): Promise<void> {
-    if (!this.duel || !this.pending || this.match?.ended) return;
-    const team = this.teamOf(seat);
-    const waiting = ('player' in this.pending ? this.pending.player : -1) as number;
-    if (waiting !== team || seq !== this.responses) return; // no le toca o respuesta antigua
-    const response = checkResponse(this.pending, raw);
-    let ok = response !== null;
-    if (response) {
-      try {
-        this.duel.respond(response);
-      } catch {
-        ok = false;
-      }
-    }
-    if (!ok || !response) {
+    const arb = this.arb;
+    if (!arb || this.match?.ended) return;
+    const r = arb.respond(this.teamOf(seat), seq, raw);
+    if (r.kind === 'ignored') return;
+    if (r.kind === 'invalid') {
       // Respuesta mal formada: no llega al motor y se vuelve a pedir la misma decisión.
-      this.retry = true;
       for (const ws of this.socketsOf(seat)) this.sendUpdate(seat, ws, false);
       return;
     }
-    await this.ctx.storage.put(`r:${String(this.responses).padStart(7, '0')}`, encode(response));
-    this.responses++;
-    this.advance();
+    await this.ctx.storage.put(`r:${String(arb.responses - 1).padStart(7, '0')}`, encode(r.response));
+    await this.advance();
   }
 
   private async finish(winnerTeam: 0 | 1 | null, reason: string): Promise<void> {
     if (!this.match || this.match.ended) return;
+    this.arb?.end(winnerTeam, reason);
     this.match.ended = { winner: winnerTeam, reason };
-    this.pending = null;
     await this.ctx.storage.put('match', this.match);
     for (const seat of [0, 1] as const) {
       for (const ws of this.socketsOf(seat)) {
@@ -254,25 +213,12 @@ export class DuelRoom extends DurableObject<Env> {
         this.send(ws, { t: 'ended', winner: winnerTeam, reason });
       }
     }
-    this.outbox = [[], []];
+    this.arb?.flush();
   }
 
   private sendUpdate(seat: 0 | 1, ws: WebSocket, resync: boolean): void {
-    if (!this.duel) return;
-    const team = this.teamOf(seat);
-    const p = this.pending;
-    const waitingFor = p && 'player' in p ? ((p.player & 1) as 0 | 1) : null;
-    const duel = this.duel;
-    this.send(ws, {
-      t: 'update',
-      // Número de respuestas dadas: no cambia al reconstruir el duelo tras hibernar.
-      seq: this.responses,
-      view: duel.view(team),
-      events: resync ? [] : this.outbox[team],
-      prompt: p && waitingFor === team ? sanitizePrompt(team, p, (c, l, s) => duel.isFaceUp(c, l, s)) : null,
-      waitingFor: this.match?.ended ? null : waitingFor,
-      retry: waitingFor === team && this.retry ? true : undefined,
-    });
+    if (!this.arb) return;
+    this.send(ws, this.arb.update(this.teamOf(seat), resync));
   }
 
   // ---------- utilidades ----------
@@ -301,19 +247,4 @@ export class DuelRoom extends DurableObject<Env> {
 function sanitizeDeck(d: Partial<Deck> | undefined): Deck {
   const list = (x: unknown) => (Array.isArray(x) ? x.filter((n) => Number.isInteger(n) && n > 0).slice(0, 90) : []);
   return { main: list(d?.main), extra: list(d?.extra), side: list(d?.side) };
-}
-
-function winReason(r: number | undefined): string {
-  switch (r) {
-    case 1:
-      return 'LP a 0';
-    case 2:
-      return 'Sin cartas en el mazo';
-    case 3:
-      return 'Tiempo agotado';
-    case 4:
-      return 'Desconexión';
-    default:
-      return 'Fin del duelo';
-  }
 }
