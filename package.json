@@ -1,0 +1,19 @@
+{
+  "name": "goat-online",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "license": "AGPL-3.0-or-later",
+  "scripts": {
+    "data": "node scripts/build-data.mjs",
+    "test:duel": "node test/headless-duel.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "ocgcore-wasm": "0.1.7"
+  },
+  "devDependencies": {
+    "typescript": "6.0.3",
+    "vite": "8.3.8"
+  }
+}
