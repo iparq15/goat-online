@@ -76,6 +76,30 @@ npm run build      # dist/
   (`normalizeDeck`), así funcionan los `.ydk` hechos en otros simuladores.
 - El duelo de práctica solo deja elegir mazos legales.
 
+## Fase 5: duelos online
+
+**App publicada:** https://goat-online.pages.dev
+
+- Lobby (`server/src/lobby.ts`, Durable Object): salas públicas listadas y salas privadas con
+  código de 5 caracteres; enlace de invitación `?room=CODE`.
+- La sala de duelo avisa al lobby al empezar o al quedarse vacía, guarda sus plazas aunque
+  Cloudflare la saque de memoria y borra sus datos una hora después de terminar.
+- Reconexión automática con el token del asiento (también al volver de segundo plano en iOS) y
+  "Resume online duel" en el menú si se cierra la app a mitad de duelo.
+- Si la app pasa a segundo plano, el rival lo ve ("switched apps"). Si un jugador se desconecta y
+  no vuelve en 3 minutos, pierde (alarma del Durable Object).
+- Despliegue: Worker `goat-online` (lobby + duelos) y Cloudflare Pages, que reenvía `/api/*` al
+  Worker por service binding (`pages/`).
+
+```powershell
+npm run server:dev                                   # http://localhost:8788
+npm run dev                                          # http://localhost:5180 (proxy /api al 8788)
+node test/server-duel.ts ws://localhost:8788 20      # incluye lobby, "away" y derrota por desconexión
+npm run deploy                                       # Worker + Pages
+```
+
+Con `server/.dev.vars` = `DEBUG=1`, la derrota por desconexión es a los 6 s para poder probarla.
+
 ## Licencias
 
 - Este proyecto: **AGPL-3.0-or-later** ([LICENSE](LICENSE)).

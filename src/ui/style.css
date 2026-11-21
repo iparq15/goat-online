@@ -1328,3 +1328,69 @@ a {
   font-size: 14px;
   padding: 8px 10px;
 }
+
+/* ---------- online ---------- */
+
+.netbanner {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  top: calc(env(safe-area-inset-top) + 44px);
+  z-index: 10;
+  padding: 8px 10px;
+  font-size: 13px;
+  text-align: center;
+  background: #3a1426ee;
+  box-shadow: 0 0 0 2px var(--opp);
+  pointer-events: none;
+}
+.online .roomlist {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+}
+.roomrow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  background: var(--panel);
+  box-shadow: 0 0 0 2px var(--dark), inset 0 0 0 2px var(--zone-line);
+}
+.roomrow span {
+  flex: 1;
+  font-size: 15px;
+}
+.roomrow small {
+  color: var(--muted);
+}
+.codein {
+  display: flex;
+  gap: 8px;
+}
+.codein input {
+  flex: 1;
+  text-transform: uppercase;
+  font-family: var(--pix);
+  letter-spacing: 4px;
+}
+.roomcode {
+  font-family: var(--pix);
+  font-size: 34px;
+  letter-spacing: 8px;
+  color: var(--amber);
+  text-shadow: 3px 3px 0 var(--dark);
+  -webkit-user-select: all;
+  user-select: all;
+}
+.dots::after {
+  content: '';
+  animation: dots 1.2s steps(4) infinite;
+}
+@keyframes dots {
+  0% { content: ''; }
+  25% { content: '.'; }
+  50% { content: '..'; }
+  75% { content: '...'; }
+}

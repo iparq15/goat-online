@@ -1,4 +1,4 @@
-// Servidor de duelos de GOAT Online (Worker + Durable Object).
+// Lobby y servidor de duelos de GOAT Online (Worker + Durable Objects).
 //   npm run server:dev     (local, http://localhost:8788)
 {
   "$schema": "../node_modules/wrangler/config-schema.json",
@@ -6,9 +6,15 @@
   "main": "src/index.ts",
   "compatibility_date": "2026-11-01",
   "durable_objects": {
-    "bindings": [{ "name": "DUEL_ROOM", "class_name": "DuelRoom" }]
+    "bindings": [
+      { "name": "DUEL_ROOM", "class_name": "DuelRoom" },
+      { "name": "LOBBY", "class_name": "Lobby" }
+    ]
   },
-  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["DuelRoom"] }],
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["DuelRoom"] },
+    { "tag": "v2", "new_sqlite_classes": ["Lobby"] }
+  ],
   "rules": [{ "type": "CompiledWasm", "globs": ["**/*.wasm"], "fallthrough": true }],
   "dev": { "port": 8788 }
 }

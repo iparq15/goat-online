@@ -12,6 +12,7 @@ import { showDeckList } from './deck-editor.ts';
 import { listDecks, migrateLegacy } from './deck-store.ts';
 import { DuelClient } from './duel-client.ts';
 import { LocalHost } from './local-host.ts';
+import { playRoom, savedSession, showLobby, type OnlineCtx } from './online.ts';
 import { STARTER_DECKS, type NamedDeck } from './starter-decks.ts';
 import { esc, initText } from './text.ts';
 
@@ -54,6 +55,12 @@ async function boot(): Promise<void> {
     });
     initText(assets.data, assets.strings);
     await migrateLegacy();
+    // Enlace de invitación: ?room=CODE abre el lobby con el código puesto.
+    const code = new URLSearchParams(location.search).get('room');
+    if (code) {
+      history.replaceState(null, '', location.pathname);
+      return void showLobby(onlineCtx(), code.toUpperCase().slice(0, 5));
+    }
     menu();
   } catch (e) {
     app.innerHTML = `<div class="screen center"><h2>Couldn't load</h2><p>${esc(String(e))}</p><button class="btn go" onclick="location.reload()">Retry</button></div>`;
@@ -62,19 +69,36 @@ async function boot(): Promise<void> {
 
 // ---------- menú ----------
 
+function onlineCtx(): OnlineCtx {
+  return {
+    app,
+    data: assets.data,
+    onExit: menu,
+    name: prefs.get('online', { name: '' }).name || prefs.get('practice', { names: ['Player 1'] }).names[0] || 'Player',
+    saveName: (name) => prefs.set('online', { name }),
+  };
+}
+
 function menu(): void {
   fresh();
+  const session = savedSession();
   app.innerHTML = `<div class="screen center menu">
     <div class="logo">GOAT<br><span>ONLINE</span></div>
     <p class="tag">GOAT format duels · April 2005 banlist</p>
     <div class="mbtns col">
-      <button class="btn go big" id="m-practice">Practice duel</button>
+      ${session ? `<button class="btn go big" id="m-resume">Resume online duel <small>(room ${esc(session.room)})</small></button>` : ''}
+      <button class="btn ${session ? '' : 'go '}big" id="m-online">Online duel</button>
+      <button class="btn big" id="m-practice">Practice duel</button>
       <button class="btn big" id="m-decks">My decks</button>
-      <button class="btn big off" disabled>Online duel <small>(soon)</small></button>
     </div>
     <p class="credits">Fan project, not affiliated with Konami. Engine: ygopro-core (EDOPro) and Project Ignis card scripts, under AGPL-3.0. <a href="https://github.com/iparq15/goat-online" target="_blank" rel="noopener">Source code</a>.</p>
   </div>`;
   document.getElementById('m-practice')!.onclick = () => void practiceSetup();
+  document.getElementById('m-online')!.onclick = () => {
+    fresh();
+    void showLobby(onlineCtx());
+  };
+  if (session) document.getElementById('m-resume')!.onclick = () => (fresh(), playRoom(onlineCtx(), session));
   document.getElementById('m-decks')!.onclick = decks;
 }
 

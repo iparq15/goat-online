@@ -1,0 +1,10 @@
+// Cloudflare Pages (https://goat-online.pages.dev): sirve la app (../dist) y reenvía /api/* al
+// Worker del lobby y los duelos (goat-online) por service binding, en el mismo origen.
+//   npm run deploy
+{
+  "$schema": "../node_modules/wrangler/config-schema.json",
+  "name": "goat-online",
+  "pages_build_output_dir": "../dist",
+  "compatibility_date": "2026-11-01",
+  "services": [{ "binding": "API", "service": "goat-online" }]
+}

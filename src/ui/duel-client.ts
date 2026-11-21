@@ -81,6 +81,10 @@ export class DuelClient {
   private placeable = new Map<string, Place>();
   private announceQuery = '';
   private endHidden = false;
+  /** Estado de la red (solo online). */
+  private reconnecting = false;
+  private opp: { connected: boolean; away?: boolean; forfeitAt?: number } | null = null;
+  private timer = 0;
   visible = true;
 
   constructor(el: HTMLElement, link: DuelLink, opts: ClientOptions) {
@@ -90,7 +94,36 @@ export class DuelClient {
     el.classList.add('duel');
     el.addEventListener('click', (e) => this.onClick(e));
     el.addEventListener('input', (e) => this.onInput(e));
+    // Cuenta atrás del aviso de desconexión.
+    this.timer = window.setInterval(() => {
+      const b = this.el.querySelector('.netbanner');
+      if (b) b.textContent = this.netText();
+    }, 1000);
     this.render();
+  }
+
+  destroy(): void {
+    clearInterval(this.timer);
+  }
+
+  /** Conexión con el servidor perdida (true) o recuperada (false). */
+  setReconnecting(on: boolean): void {
+    if (this.reconnecting === on) return;
+    this.reconnecting = on;
+    this.render();
+  }
+
+  private netText(): string {
+    if (this.ended) return '';
+    if (this.reconnecting) return 'Connection lost · reconnecting…';
+    const o = this.opp;
+    if (o && !o.connected) {
+      if (!o.forfeitAt) return `${this.opts.names[1]} left.`;
+      const s = Math.max(0, Math.round((o.forfeitAt - Date.now()) / 1000));
+      return `${this.opts.names[1]} disconnected · you win in ${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')} if they don't return`;
+    }
+    if (o?.away) return `${this.opts.names[1]} switched apps · waiting…`;
+    return '';
   }
 
   /** ¿Te toca decidir ahora? */
@@ -117,9 +150,15 @@ export class DuelClient {
       case 'error':
         this.log(`Error: ${m.message}`);
         break;
-      case 'opponent':
-        this.log(m.connected ? `${m.name ?? 'Your opponent'} is connected.` : `${m.name ?? 'Your opponent'} disconnected.`);
+      case 'opponent': {
+        if (m.name) this.opts.names[1] = m.name;
+        const prev = this.opp;
+        this.opp = { connected: m.connected, away: m.away, forfeitAt: m.forfeitAt };
+        const who = m.name ?? 'Your opponent';
+        if (!prev || prev.connected !== m.connected) this.log(m.connected ? `${who} is connected.` : `${who} disconnected.`);
+        else if (!!prev.away !== !!m.away) this.log(m.away ? `${who} switched to another app.` : `${who} is back.`);
         break;
+      }
       default:
         return;
     }
@@ -483,6 +522,7 @@ export class DuelClient {
       : '';
     return `
       ${this.playerBar(op, 'opp')}
+      ${this.netText() ? `<div class="netbanner">${esc(this.netText())}</div>` : ''}
       <div class="field ${turnOwner}">
         <div class="row">${this.pileCell(op, 1)}${rev.map((i) => this.zoneCell(op, 8, i)).join('')}${this.pileCell(op, 64)}</div>
         <div class="row">${this.pileCell(op, 16)}${rev.map((i) => this.zoneCell(op, 4, i)).join('')}${this.zoneCell(op, 8, 5)}</div>

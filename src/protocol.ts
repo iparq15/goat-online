@@ -4,7 +4,18 @@
 import type { OcgMessage, OcgResponse } from 'ocgcore-wasm';
 import type { Deck } from './engine/ydk.ts';
 
-export const PROTOCOL_VERSION = 1;
+export const PROTOCOL_VERSION = 2;
+
+/** Sala del lobby (GET /api/rooms, POST /api/rooms). */
+export interface RoomInfo {
+  /** Código de 5 caracteres. */
+  id: string;
+  host: string;
+  created: number;
+}
+
+/** Si un jugador se desconecta durante el duelo, pierde al pasar este tiempo sin volver. */
+export const DISCONNECT_FORFEIT_MS = 3 * 60 * 1000;
 
 /** Carta tal como la ve un jugador. code 0 = boca abajo / oculta para él. */
 export interface ViewCard {
@@ -47,13 +58,25 @@ export type ClientMsg =
   | { t: 'join'; v: number; name: string; deck: Deck; token?: string }
   | { t: 'respond'; seq: number; response: OcgResponse }
   | { t: 'surrender' }
+  /** La app pasó a segundo plano (true) o volvió (false). */
+  | { t: 'away'; away: boolean }
+  /** Salir de una sala que aún no ha empezado. */
+  | { t: 'leave' }
   | { t: 'ping' }
   /** Solo en desarrollo. */
   | { t: 'debug-restore' };
 
 export type ServerMsg =
   | { t: 'joined'; seat: 0 | 1; token: string; opponent: string | null }
-  | { t: 'opponent'; name: string | null; connected: boolean }
+  | {
+      t: 'opponent';
+      name: string | null;
+      connected: boolean;
+      /** Tiene la app en segundo plano. */
+      away?: boolean;
+      /** Si no vuelve, pierde en este momento (ms desde 1970). */
+      forfeitAt?: number;
+    }
   | { t: 'deck-invalid'; problems: string[] }
   | {
       t: 'update';

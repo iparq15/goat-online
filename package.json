@@ -11,7 +11,10 @@
     "data": "node scripts/build-data.mjs",
     "test:duel": "node test/headless-duel.ts",
     "typecheck": "tsc --noEmit",
-    "server:dev": "wrangler dev --config server/wrangler.jsonc"
+    "server:dev": "wrangler dev --config server/wrangler.jsonc",
+    "deploy:server": "wrangler deploy --config server/wrangler.jsonc",
+    "deploy:app": "vite build && cd pages && wrangler pages deploy --branch main",
+    "deploy": "npm run deploy:server && npm run deploy:app"
   },
   "dependencies": {
     "@fontsource/pixelify-sans": "^5.3.0",

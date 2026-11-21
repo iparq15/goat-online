@@ -13,6 +13,13 @@ import { PROTOCOL_VERSION, type ClientMsg, type DuelView, type ServerMsg } from 
 import { botRespond, mulberry32, type BotState } from './bot.ts';
 
 const BASE = process.argv[2] ?? 'ws://localhost:8788';
+const HTTP = BASE.replace(/^ws/, 'http');
+
+async function createRoom(host: string, isPublic = true): Promise<string> {
+  const r = await fetch(`${HTTP}/api/rooms`, { method: 'POST', body: JSON.stringify({ host, public: isPublic }) });
+  return ((await r.json()) as { id: string }).id;
+}
+const listedRooms = async () => ((await (await fetch(`${HTTP}/api/rooms`)).json()) as { id: string }[]).map((r) => r.id);
 const DUELS = Number(process.argv[3] ?? 3);
 
 const data = parseGoatData({
@@ -78,6 +85,7 @@ class BotClient {
   token = '';
   last: Extract<ServerMsg, { t: 'update' }> | null = null;
   ended: Extract<ServerMsg, { t: 'ended' }> | null = null;
+  oppStatus: Extract<ServerMsg, { t: 'opponent' }> | null = null;
   leaks: string[] = [];
   updates = 0;
   prompts = 0;
@@ -142,6 +150,9 @@ class BotClient {
       case 'ended':
         this.ended = m;
         break;
+      case 'opponent':
+        this.oppStatus = m;
+        break;
       case 'deck-invalid':
       case 'error':
         console.log(`  [${this.name}] ${m.t}:`, 'problems' in m ? m.problems : m.message);
@@ -151,13 +162,21 @@ class BotClient {
 }
 
 async function runDuel(i: number): Promise<boolean> {
-  const room = `test-${Date.now()}-${i}`;
+  const room = await createRoom('Ana');
   const url = `${BASE}/api/duel/${room}`;
   const a = new BotClient('Ana', url, decks[i % decks.length], mulberry32(10 + i));
   const b = new BotClient('Beto', url, decks[(i * 5 + 2) % decks.length], mulberry32(90 + i));
   await a.connect();
   await sleep(100);
+  const listedBefore = (await listedRooms()).includes(room);
   await b.connect();
+  await sleep(300);
+  const listedAfter = (await listedRooms()).includes(room);
+  if (i === 0) console.log(`  · sala en el lobby antes de empezar: ${listedBefore ? 'sí' : 'NO'} · después: ${listedAfter ? 'SÍ (mal)' : 'no'}`);
+  if (!listedBefore || listedAfter) a.leaks.push('el lobby no refleja el estado de la sala');
+  // En el segundo duelo, Beto se va y no vuelve: debe perder por desconexión.
+  let abandoned = false;
+  let awayTested = false;
 
   // Pruebas de árbitro en el primer duelo.
   let reconnected = false;
@@ -209,6 +228,28 @@ async function runDuel(i: number): Promise<boolean> {
       a.paused = b.paused = false;
       a.respondNow();
       b.respondNow();
+    }
+    if (i === 1 && !awayTested && turn >= 2) {
+      awayTested = true;
+      b.send({ t: 'away', away: true });
+      await sleep(300);
+      console.log(`  · Beto pasa a segundo plano → Ana lo ve ausente: ${a.oppStatus?.away ? 'sí' : 'NO'}`);
+      if (!a.oppStatus?.away) a.leaks.push('aviso de ausente no recibido');
+      b.send({ t: 'away', away: false });
+    }
+    if (i === 1 && !abandoned && turn >= 4) {
+      abandoned = true;
+      b.paused = true;
+      b.ws.close();
+      await sleep(500);
+      const fa = a.oppStatus?.forfeitAt;
+      console.log(`  · Beto cierra la app: Ana ve "desconectado" con cuenta atrás: ${!a.oppStatus?.connected && fa ? `sí (${Math.round((fa - Date.now()) / 1000)} s)` : 'NO'}`);
+      for (let k = 0; k < 40 && !a.ended; k++) await sleep(500);
+      const ok = a.ended?.reason === 'Disconnection' && a.ended.winner === a.last?.view.you;
+      console.log(`  · sin volver, gana Ana por desconexión: ${ok ? 'sí' : `NO (${a.ended?.reason})`}`);
+      if (!ok) a.leaks.push('no se dio la victoria por desconexión');
+      b.ended = a.ended;
+      break;
     }
     if (turn > 80 && !a.ended) {
       a.send({ t: 'surrender' });
