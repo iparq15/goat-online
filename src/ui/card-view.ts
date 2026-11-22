@@ -1,8 +1,10 @@
-// Cartas sin ilustración oficial: marco pixel propio + un icono pixel original según el tipo de
-// carta (src/ui/sprites.ts) sobre un emblema generado a partir del código de la carta.
+// Cartas sin ilustración oficial: marco pixel propio + un icono pixel original (propio de la carta
+// en las más jugadas, src/ui/card-sprites.ts; si no, según su tipo, src/ui/sprites.ts) sobre un
+// emblema generado a partir del código de la carta.
 
 import { TYPE, type CardInfo } from '../engine/data.ts';
 import { RACE_SPRITE, SPRITES } from './sprites.ts';
+import { CARD_SPRITES } from './card-sprites.ts';
 import { ATTRIBUTE_SHORT, card, cardName, esc, spellIcon, typeLine, attributeName, POSITION_NAME } from './text.ts';
 
 
@@ -41,7 +43,10 @@ const ATTR_TRIPLE: Record<number, [string, string, string]> = {
   32: ['#a46be0', '#4a2380', '#d6b5ff'],
   64: ['#ffb347', '#8f5a10', '#ffe0a8'],
 };
-const FIXED: Record<string, string> = { k: '#120c22', w: '#fff4dc', y: '#ffd24a', g: '#a9a9c4', r: '#ff3d55' };
+const FIXED: Record<string, string> = {
+  k: '#120c22', w: '#fff4dc', y: '#ffd24a', g: '#a9a9c4', r: '#ff3d55',
+  e: '#5fd36b', u: '#4aa3ff', p: '#a46be0', n: '#8a5a2e', s: '#f2c29a', d: '#3a3350', o: '#ff8a2a',
+};
 
 /** Qué icono lleva la carta: tipo de monstruo o subtipo de magia/trampa. */
 function spriteFor(c: CardInfo | undefined): string {
@@ -83,6 +88,7 @@ export function sigilUrl(code: number): string {
         : kind === 'token'
           ? (['#c9c9d6', '#5b5b66', '#f0f0f6'] as const)
           : (ATTR_TRIPLE[c?.attribute ?? 0] ?? (['#cccccc', '#555555', '#eeeeee'] as const));
+  const own = CARD_SPRITES[c?.alias || code];
   const N = 16;
   const cv = document.createElement('canvas');
   cv.width = cv.height = N;
@@ -90,7 +96,7 @@ export function sigilUrl(code: number): string {
   g.fillStyle = '#120c22';
   g.fillRect(0, 0, N, N);
   // Fondo: emblema simétrico tenue, único para cada carta.
-  g.globalAlpha = 0.28;
+  g.globalAlpha = own ? 0.14 : 0.28;
   for (let y = 0; y < 8; y++) {
     for (let x = 0; x < 4; x++) {
       if (rnd() > 0.5) continue;
@@ -100,7 +106,7 @@ export function sigilUrl(code: number): string {
   }
   g.globalAlpha = 1;
   const colors: Record<string, string> = { ...FIXED, a, b, c: l };
-  const rows = SPRITES[spriteFor(c)] ?? [];
+  const rows = own ?? SPRITES[spriteFor(c)] ?? [];
   rows.forEach((row, y) => {
     for (let x = 0; x < Math.min(16, row.length); x++) {
       const ch = row[x];

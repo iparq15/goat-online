@@ -121,6 +121,9 @@ Con `server/.dev.vars` = `DEBUG=1`, la derrota por desconexión es a los 6 s par
 - **Ilustraciones pixel propias** (`src/ui/sprites.ts`): un icono 16x16 por tipo de monstruo,
   coloreado con su atributo, y por subtipo de magia/trampa, sobre un emblema tenue único de cada
   carta. No se usa el arte oficial.
+- **Iconos propios de las cartas más jugadas** (`src/ui/card-sprites.ts`): 73 cartas clave de GOAT
+  (Scapegoat, Pot of Greed, Mirror Force, Jinzo, los Monarcas…) tienen un icono 16x16 dibujado a
+  mano que representa su nombre o su efecto (diseño propio, no basado en las ilustraciones).
 - **Animaciones** (`src/ui/fx.ts`, diseño propio): activar (carta grande con rayos), ataque
   (embestida y corte), destrucción (fragmentos pixel), salida del campo hacia mano/mazo/desterradas,
   invocación normal/especial/volteo, colocar, robar, barajar, daño (sacudida y LP que bajan),
