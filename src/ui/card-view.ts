@@ -1,18 +1,10 @@
-// Cartas sin ilustración: marco pixel propio + un emblema geométrico generado a partir del
-// código de la carta (siempre el mismo para la misma carta), para reconocerlas de un vistazo.
+// Cartas sin ilustración oficial: marco pixel propio + un icono pixel original según el tipo de
+// carta (src/ui/sprites.ts) sobre un emblema generado a partir del código de la carta.
 
 import { TYPE, type CardInfo } from '../engine/data.ts';
+import { RACE_SPRITE, SPRITES } from './sprites.ts';
 import { ATTRIBUTE_SHORT, card, cardName, esc, spellIcon, typeLine, attributeName, POSITION_NAME } from './text.ts';
 
-const ATTR_COLORS: Record<number, [string, string]> = {
-  1: ['#a77b45', '#5a3c1e'],
-  2: ['#4aa3ff', '#1d4c8f'],
-  4: ['#ff6a3d', '#8f2414'],
-  8: ['#5fd36b', '#1f6b2c'],
-  16: ['#ffe066', '#a07a12'],
-  32: ['#a46be0', '#3c1a66'],
-  64: ['#ffb347', '#8f5a10'],
-};
 
 export function frameKind(c: CardInfo | undefined): string {
   if (!c) return 'back';
@@ -39,33 +31,84 @@ function hash(n: number): () => number {
 
 const sigils = new Map<number, string>();
 
-/** Emblema pixel simétrico de 9x9 (data URL), con los colores del atributo o del tipo. */
+/** Colores [principal, sombra, luz] del icono según atributo o tipo de carta. */
+const ATTR_TRIPLE: Record<number, [string, string, string]> = {
+  1: ['#c08a4c', '#6b4421', '#e8c08a'],
+  2: ['#4aa3ff', '#1d4c8f', '#a8d8ff'],
+  4: ['#ff6a3d', '#8f2414', '#ffb08f'],
+  8: ['#5fd36b', '#1f6b2c', '#b5f2b9'],
+  16: ['#ffd84a', '#a07a12', '#fff3b0'],
+  32: ['#a46be0', '#4a2380', '#d6b5ff'],
+  64: ['#ffb347', '#8f5a10', '#ffe0a8'],
+};
+const FIXED: Record<string, string> = { k: '#120c22', w: '#fff4dc', y: '#ffd24a', g: '#a9a9c4', r: '#ff3d55' };
+
+/** Qué icono lleva la carta: tipo de monstruo o subtipo de magia/trampa. */
+function spriteFor(c: CardInfo | undefined): string {
+  if (!c) return 'token';
+  const t = c.type;
+  if (t & TYPE.TOKEN) return 'token';
+  if (t & TYPE.SPELL) {
+    if (t & 0x10000) return 'quickplay';
+    if (t & 0x20000) return 'continuous';
+    if (t & 0x40000) return 'equip';
+    if (t & 0x80000) return 'field';
+    if (t & 0x80) return 'ritual';
+    return 'spell';
+  }
+  if (t & TYPE.TRAP) {
+    if (t & 0x20000) return 'trapcontinuous';
+    if (t & 0x100000) return 'counter';
+    return 'trap';
+  }
+  const race = Number(c.race);
+  return RACE_SPRITE[race & -race] ?? 'token';
+}
+
+/**
+ * Ilustración pixel de la carta (data URL, 16x16): icono de su tipo con los colores de su
+ * atributo, sobre un emblema tenue generado a partir del código (distinto en cada carta).
+ */
 export function sigilUrl(code: number): string {
   const cached = sigils.get(code);
   if (cached) return cached;
   const c = card(code);
   const rnd = hash(code);
   const kind = frameKind(c);
-  const [hi, lo] =
-    kind === 'spell' ? ['#7ff0cf', '#14584a'] : kind === 'trap' ? ['#ff8fd0', '#5e1745'] : kind === 'token' ? ['#e0e0e0', '#555'] : (ATTR_COLORS[c?.attribute ?? 0] ?? ['#ddd', '#444']);
-  const N = 9;
+  const [a, b, l] =
+    kind === 'spell'
+      ? (['#3fd6ac', '#14584a', '#b8f5e3'] as const)
+      : kind === 'trap'
+        ? (['#ff6fbf', '#6b1a4e', '#ffc2e6'] as const)
+        : kind === 'token'
+          ? (['#c9c9d6', '#5b5b66', '#f0f0f6'] as const)
+          : (ATTR_TRIPLE[c?.attribute ?? 0] ?? (['#cccccc', '#555555', '#eeeeee'] as const));
+  const N = 16;
   const cv = document.createElement('canvas');
   cv.width = cv.height = N;
   const g = cv.getContext('2d')!;
   g.fillStyle = '#120c22';
   g.fillRect(0, 0, N, N);
-  for (let y = 0; y < N; y++) {
-    for (let x = 0; x <= N >> 1; x++) {
-      // Más densidad hacia el centro para que parezca un emblema.
-      const d = Math.abs(x - 4) + Math.abs(y - 4);
-      const r = rnd();
-      const on = r < 0.75 - d * 0.09;
-      if (!on) continue;
-      g.fillStyle = rnd() < 0.3 ? lo : hi;
-      g.fillRect(x, y, 1, 1);
-      g.fillRect(N - 1 - x, y, 1, 1);
+  // Fondo: emblema simétrico tenue, único para cada carta.
+  g.globalAlpha = 0.28;
+  for (let y = 0; y < 8; y++) {
+    for (let x = 0; x < 4; x++) {
+      if (rnd() > 0.5) continue;
+      g.fillStyle = rnd() < 0.5 ? b : a;
+      for (const xx of [x, 7 - x]) g.fillRect(xx * 2, y * 2, 2, 2);
     }
   }
+  g.globalAlpha = 1;
+  const colors: Record<string, string> = { ...FIXED, a, b, c: l };
+  const rows = SPRITES[spriteFor(c)] ?? [];
+  rows.forEach((row, y) => {
+    for (let x = 0; x < Math.min(16, row.length); x++) {
+      const ch = row[x];
+      if (ch === '.') continue;
+      g.fillStyle = colors[ch] ?? a;
+      g.fillRect(x, y, 1, 1);
+    }
+  });
   const url = cv.toDataURL();
   sigils.set(code, url);
   return url;

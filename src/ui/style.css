@@ -1420,3 +1420,147 @@ button,
 [hidden] {
   display: none !important;
 }
+
+/* ---------- animaciones del duelo ---------- */
+
+.fxlayer {
+  position: absolute;
+  inset: 0;
+  z-index: 15;
+  pointer-events: none;
+  overflow: hidden;
+}
+.fxcard {
+  z-index: 2;
+}
+.fx-activate {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: #0a0618aa;
+}
+.fx-activate .rays {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 520px;
+  height: 520px;
+  margin: -260px 0 0 -260px;
+  background: repeating-conic-gradient(from 0deg, #ffb43b55 0deg 10deg, transparent 10deg 20deg);
+  animation: rays 2.4s steps(24) infinite;
+  -webkit-mask: radial-gradient(circle, #000 20%, transparent 65%);
+  mask: radial-gradient(circle, #000 20%, transparent 65%);
+}
+.fx-activate.theirs .rays {
+  background: repeating-conic-gradient(from 0deg, #ff5a6e55 0deg 10deg, transparent 10deg 20deg);
+}
+@keyframes rays {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.fx-big {
+  position: relative;
+  transform-origin: center;
+}
+.fx-big .bigcard {
+  --cw: 150px;
+  width: 150px;
+  height: 214px;
+  box-shadow: inset 0 0 0 3px var(--frame-d), inset 0 0 0 5px #ffffff55, 0 0 0 3px var(--dark), 0 0 28px 6px #ffd36b88;
+}
+.fx-big .bigcard .cn {
+  font-size: 14px;
+}
+.fx-label {
+  position: relative;
+  font-family: var(--pix);
+  font-size: 14px;
+  color: var(--amber);
+  text-shadow: 3px 3px 0 var(--dark);
+  letter-spacing: 2px;
+}
+.fx-activate.theirs .fx-label {
+  color: var(--opp);
+}
+.fx-slash {
+  background: linear-gradient(180deg, transparent 44%, #fff4dc 44%, #fff4dc 56%, transparent 56%);
+  transform-origin: left center;
+  z-index: 3;
+}
+.fx-flash {
+  background: #fff4dc;
+  z-index: 3;
+}
+.fx-shard {
+  z-index: 3;
+  box-shadow: 1px 1px 0 #120c22;
+}
+.fx-redflash {
+  background: #ff2d4a;
+  mix-blend-mode: screen;
+}
+.fx-banner {
+  position: absolute;
+  left: -10%;
+  right: -10%;
+  top: 40%;
+  padding: 14px 0 12px;
+  text-align: center;
+  background: repeating-linear-gradient(90deg, #2c2058 0 12px, #3a2c72 12px 24px);
+  box-shadow: 0 4px 0 var(--amber), 0 -4px 0 var(--amber), 0 8px 0 var(--dark), 0 -8px 0 var(--dark);
+}
+.fx-banner.theirs {
+  box-shadow: 0 4px 0 var(--opp), 0 -4px 0 var(--opp), 0 8px 0 var(--dark), 0 -8px 0 var(--dark);
+}
+.fx-banner .t {
+  font-family: var(--pix);
+  font-size: 17px;
+  padding: 0 14%;
+  line-height: 1.4;
+  color: var(--amber);
+  text-shadow: 3px 3px 0 var(--dark);
+}
+.fx-banner.theirs .t {
+  color: var(--opp);
+}
+.fx-banner .s {
+  margin-top: 6px;
+  font-family: var(--pix);
+  font-size: 9px;
+  color: var(--ink);
+}
+.fx-stamp {
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  font-family: var(--pix);
+  font-size: 26px;
+  padding: 10px 14px;
+  color: var(--opp);
+  border: 4px solid var(--opp);
+  background: #0a0618cc;
+  white-space: nowrap;
+}
+.fx-stamp.coin {
+  color: var(--amber);
+  border-color: var(--amber);
+  font-size: 18px;
+}
+.fx-ring {
+  border-radius: 50%;
+  border: 4px solid #fff4dc;
+  box-shadow: 0 0 0 3px var(--amber);
+}
+.fx-ring.special {
+  border-color: #b5f2ff;
+  box-shadow: 0 0 0 3px #48b4ff;
+}
+.fx-pillar {
+  background: linear-gradient(90deg, transparent, #b5f2ffcc 30%, #ffffff 50%, #b5f2ffcc 70%, transparent);
+  transform-origin: center;
+}

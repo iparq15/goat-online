@@ -114,6 +114,18 @@ Con `server/.dev.vars` = `DEBUG=1`, la derrota por desconexión es a los 6 s par
   "inteligentes" (no pregunta en simples cambios de fase, salvo en la fase de batalla y la fase
   final del rival). También desde el menú ☰ del duelo.
 
+## Después de la Fase 6
+
+- **Barajado inicial:** el motor de EDOPro no baraja el mazo al empezar (lo hace el cliente), así
+  que `GoatDuel` lo baraja con un generador derivado de la semilla del duelo (reproducible).
+- **Ilustraciones pixel propias** (`src/ui/sprites.ts`): un icono 16x16 por tipo de monstruo,
+  coloreado con su atributo, y por subtipo de magia/trampa, sobre un emblema tenue único de cada
+  carta. No se usa el arte oficial.
+- **Animaciones** (`src/ui/fx.ts`, diseño propio): activar (carta grande con rayos), ataque
+  (embestida y corte), destrucción (fragmentos pixel), salida del campo hacia mano/mazo/desterradas,
+  invocación normal/especial/volteo, colocar, robar, barajar, daño (sacudida y LP que bajan),
+  negación y cambio de turno. Velocidad normal/rápida/sin animaciones en Settings.
+
 ## Licencias
 
 - Este proyecto: **AGPL-3.0-or-later** ([LICENSE](LICENSE)).

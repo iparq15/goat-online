@@ -141,12 +141,13 @@ function settingsScreen(): void {
     <label class="check"><input type="checkbox" id="s-sound" ${s.sound ? 'checked' : ''}> Sound effects</label>
     <label class="check"><input type="checkbox" id="s-zone" ${s.autoZone ? 'checked' : ''}> Choose zones automatically when summoning or setting</label>
     <label class="check"><input type="checkbox" id="s-chain" ${s.chains === 'always' ? 'checked' : ''}> Always ask to chain (otherwise only when something happens, and in your opponent's Battle and End Phase)</label>
+    <label>Animations <select id="s-anim">${(['normal', 'fast', 'off'] as const).map((a) => `<option value="${a}" ${s.anim === a ? 'selected' : ''}>${a[0].toUpperCase() + a.slice(1)}</option>`).join('')}</select></label>
     <div class="mbtns col"><button class="btn go" id="s-back">Done</button></div>
     <p class="muted small">Settings are saved on this device.</p>
   </div>`;
   const $ = (id: string) => document.getElementById(id) as HTMLInputElement;
   $('s-back').onclick = () => {
-    updateSettings({ sound: $('s-sound').checked, autoZone: $('s-zone').checked, chains: $('s-chain').checked ? 'always' : 'smart' });
+    updateSettings({ sound: $('s-sound').checked, autoZone: $('s-zone').checked, chains: $('s-chain').checked ? 'always' : 'smart', anim: ($('s-anim') as unknown as HTMLSelectElement).value as 'normal' | 'fast' | 'off' });
     menu();
   };
 }
@@ -237,7 +238,7 @@ async function startPractice(names: [string, string], decks: [Deck, Deck], curta
     // Se evalúa cuando los dos asientos ya recibieron su actualización.
     setTimeout(() => {
       pending = false;
-      if (exited) return;
+      if (exited || clients[shown].animating) return;
       const deciding = ([0, 1] as const).find((s) => clients[s].deciding);
       if (deciding === undefined || deciding === shown) return;
       if (curtain) {

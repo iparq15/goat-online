@@ -6,6 +6,7 @@ import { OcgMessageType, OcgResponseType, type OcgMessage, type OcgResponse } fr
 import type { DuelView, ServerMsg, ViewCard } from '../protocol.ts';
 import type { DuelLink } from './local-host.ts';
 import { bigCard, cardInfoHtml, miniCard } from './card-view.ts';
+import { Fx, type Box } from './fx.ts';
 import { settings, updateSettings } from './settings.ts';
 import { play, type Sfx } from './sfx.ts';
 
@@ -93,11 +94,17 @@ export class DuelClient {
   private opp: { connected: boolean; away?: boolean; forfeitAt?: number } | null = null;
   private timer = 0;
   visible = true;
+  private inbox: ServerMsg[] = [];
+  private busy = false;
+  /** La actualización en curso ya se animó (los sonidos de activar/atacar/daño ya sonaron). */
+  private animatedNow = false;
+  private fx: Fx;
 
   constructor(el: HTMLElement, link: DuelLink, opts: ClientOptions) {
     this.el = el;
     this.link = link;
     this.opts = opts;
+    this.fx = new Fx(el, () => (settings().anim === 'fast' ? 0.55 : 1));
     el.classList.add('duel');
     el.addEventListener('click', (e) => this.onClick(e));
     el.addEventListener('input', (e) => this.onInput(e));
@@ -138,13 +145,173 @@ export class DuelClient {
     return !!this.u?.prompt && !this.sent && !this.ended;
   }
 
+  /** Reproduciendo animaciones (todavía no se muestra la decisión). */
+  get animating(): boolean {
+    return this.busy;
+  }
+
   get view(): DuelView | null {
     return this.u?.view ?? null;
   }
 
   // ---------- mensajes del servidor ----------
 
+  /** Los mensajes se procesan en orden; las actualizaciones se animan si la pantalla se ve. */
   handle(m: ServerMsg): void {
+    this.inbox.push(m);
+    if (!this.busy) void this.pump();
+  }
+
+  private async pump(): Promise<void> {
+    this.busy = true;
+    try {
+      while (this.inbox.length) {
+        const m = this.inbox.shift()!;
+        const prev = this.u;
+        const animate = m.t === 'update' && !!prev && this.visible && settings().anim !== 'off' && !this.ended;
+        if (animate) await this.animateBefore(prev!, m as Update).catch(() => {});
+        this.animatedNow = animate;
+        this.process(m);
+        this.animatedNow = false;
+        if (animate) await this.animateAfter(prev!, m as Update).catch(() => {});
+      }
+    } finally {
+      this.busy = false;
+    }
+    this.render();
+    this.opts.onChange?.();
+  }
+
+  // ---------- animaciones ----------
+
+  private zoneKey(c: { controller: number; location: number; sequence: number }): string {
+    return c.location === 256 ? key(c.controller, 8, 5) : key(c.controller, c.location, c.sequence);
+  }
+
+  /** Destino visual de una carta que sale del campo. */
+  private destBox(controller: number, location: number): Box | null {
+    const me = this.u?.view.you ?? 0;
+    let el: HTMLElement | null = null;
+    if (location === 16 || location === 1 || location === 64) el = this.fx.pile(`${controller}:${location}`);
+    else if (location === 32) el = this.fx.pile(`${controller}:32`);
+    else if (location === 2) el = this.el.querySelector<HTMLElement>(controller === me ? '.hand' : '.pbar.opp');
+    return el ? this.fx.box(el) : null;
+  }
+
+  /** Animaciones sobre el tablero ANTERIOR: activar, atacar, destruir, barajar, daño, turno. */
+  private async animateBefore(prev: Update, m: Update): Promise<void> {
+    const T = OcgMessageType;
+    const me = prev.view.you;
+    const evs = m.events;
+    for (let i = 0; i < evs.length; i++) {
+      const ev = evs[i];
+      switch (ev.type) {
+        case T.NEW_TURN: {
+          const mine = (ev.player & 1) === me;
+          const title = this.opts.hotseat ? `${esc(this.nameOf(ev.player & 1)).toUpperCase()}'S TURN` : mine ? 'YOUR TURN' : "OPPONENT'S TURN";
+          play('turn');
+          await this.fx.banner(title, `TURN ${m.view.turn}`, mine);
+          break;
+        }
+        case T.CHAINING:
+          play('activate');
+          await this.fx.activate(bigCard(ev.code), ev.chain_size > 1 ? `CHAIN LINK ${ev.chain_size}` : 'ACTIVATE', ev.controller === me);
+          break;
+        case T.ATTACK: {
+          const attacker = this.fx.zone(this.zoneKey(ev.card));
+          if (!attacker) break;
+          let target: Box | null = null;
+          if (ev.target) {
+            const t = this.fx.zone(this.zoneKey(ev.target));
+            if (t) target = this.fx.box(t);
+          } else {
+            const defender = 1 - ev.card.controller;
+            const bar = this.el.querySelector<HTMLElement>(defender === me ? '.pbar.me' : '.pbar.opp');
+            if (bar) target = this.fx.box(bar);
+          }
+          play('attack');
+          if (target) await this.fx.attack(attacker, target);
+          break;
+        }
+        case T.MOVE: {
+          // Cartas que salen del campo; las consecutivas se animan a la vez (p. ej. Heavy Storm).
+          const group: Promise<void>[] = [];
+          let j = i;
+          for (; j < evs.length; j++) {
+            const mv = evs[j];
+            if (mv.type !== T.MOVE) break;
+            const from = mv.from.location;
+            const to = mv.to.location;
+            if ((from === 4 || from === 8) && to !== 4 && to !== 8) {
+              const z = this.fx.zone(this.zoneKey(mv.from));
+              if (!z) continue;
+              const destroyed = (mv.reason & 0x1) !== 0;
+              group.push(destroyed ? this.fx.shatter(z) : this.fx.fly(z, this.destBox(mv.to.controller, to)));
+            }
+          }
+          i = j - 1;
+          if (group.length) await Promise.all(group);
+          break;
+        }
+        case T.DAMAGE: {
+          const field = this.el.querySelector<HTMLElement>('.field');
+          play('damage');
+          if (field) await this.fx.damage(field);
+          break;
+        }
+        case T.SHUFFLE_DECK: {
+          const pile = this.fx.pile(`${ev.player}:1`);
+          if (pile) await this.fx.shuffle(pile);
+          break;
+        }
+        case T.SHUFFLE_HAND:
+          if (ev.player === me) await this.fx.shuffleHand([...this.el.querySelectorAll<HTMLElement>('.hand .card')]);
+          break;
+        case T.CHAIN_NEGATED:
+        case T.CHAIN_DISABLED:
+          await this.fx.stamp('NEGATED', 'neg');
+          break;
+        case T.TOSS_COIN:
+          await this.fx.stamp(ev.results.map((r) => (r ? 'HEADS' : 'TAILS')).join(' · '), 'coin');
+          break;
+        case T.TOSS_DICE:
+          await this.fx.stamp(`DICE ${ev.results.join(' · ')}`, 'coin');
+          break;
+      }
+    }
+  }
+
+  /** Animaciones sobre el tablero NUEVO: invocaciones, cartas colocadas, robos y LP. */
+  private async animateAfter(prev: Update, m: Update): Promise<void> {
+    const T = OcgMessageType;
+    const me = m.view.you;
+    const all: Promise<void>[] = [];
+    let drawn = 0;
+    for (const ev of m.events) {
+      if (ev.type === T.SUMMONING || ev.type === T.SPSUMMONING || ev.type === T.FLIPSUMMONING || ev.type === T.SET) {
+        if (ev.type === T.SET && ev.location !== 4 && ev.location !== 8) continue;
+        const z = this.fx.zone(this.zoneKey(ev));
+        if (!z) continue;
+        const kind = ev.type === T.SUMMONING ? 'summon' : ev.type === T.SPSUMMONING ? 'special' : ev.type === T.FLIPSUMMONING ? 'flip' : 'set';
+        all.push(this.fx.appear(z, kind));
+      } else if (ev.type === T.DRAW && ev.player === me) drawn += ev.drawn.length;
+    }
+    if (drawn) {
+      const hand = [...this.el.querySelectorAll<HTMLElement>('.hand .card')];
+      all.push(this.fx.draw(hand.slice(-drawn), this.fx.pile(`${me}:1`)));
+    }
+    // LP que cambian: el número baja o sube poco a poco.
+    for (const p of [0, 1] as const) {
+      const before = prev.view.players[p].lp;
+      const after = m.view.players[p].lp;
+      if (before === after) continue;
+      const el = this.el.querySelector<HTMLElement>(`${p === me ? '.pbar.me' : '.pbar.opp'} .lp b`);
+      if (el) this.fx.tweenNumber(el, before, after);
+    }
+    await Promise.all(all);
+  }
+
+  private process(m: ServerMsg): void {
     switch (m.t) {
       case 'update':
         this.onUpdate(m);
@@ -187,7 +354,8 @@ export class DuelClient {
     // mismo móvil, solo suena la pantalla visible.
     const mine = !!m.prompt && !prevPrompt;
     if (this.visible) {
-      if (this.sound) play(this.sound);
+      const done = this.animatedNow && (this.sound === 'activate' || this.sound === 'attack' || this.sound === 'damage' || this.sound === 'turn');
+      if (this.sound && !done) play(this.sound);
       else if (mine && !this.opts.hotseat) play('decide');
     }
     if (m.retry) this.toast('That action isn\'t possible right now: choose another.');
@@ -303,8 +471,8 @@ export class DuelClient {
         break;
       case T.NEW_TURN:
         this.log(`── Turn ${v.turn} · ${this.nameOf(ev.player & 1)} ──`);
-        this.banner = `TURN ${v.turn}`;
-        if ((ev.player & 1) === v.you) this.sfx('turn');
+        if (settings().anim === 'off' || !this.visible) this.banner = `TURN ${v.turn}`;
+        if ((ev.player & 1) === v.you && settings().anim === 'off') this.sfx('turn');
         break;
       case T.NEW_PHASE: {
         const ph = PHASES.find(([id]) => id === phaseKey(ev.phase));
@@ -712,7 +880,7 @@ export class DuelClient {
 
   private promptHtml(): string {
     const p = this.u!.prompt;
-    if (!p || this.sent || this.ended || this.modalHidden) return '';
+    if (!p || this.sent || this.ended || this.modalHidden || this.busy) return '';
     const body = this.promptBody(p);
     if (!body) return '';
     return `<div class="modal"><div class="mbox">${body}<div class="mfoot">${this.button('View field', () => (this.modalHidden = true), 'ghost')}</div></div></div>`;
@@ -936,7 +1104,7 @@ export class DuelClient {
         )}${this.button(`Chain prompts: ${cfg.chains === 'smart' ? 'smart' : 'always ask'}`, () => updateSettings({ chains: cfg.chains === 'smart' ? 'always' : 'smart' }))}${this.button(
           `Auto zone: ${cfg.autoZone ? 'on' : 'off'}`,
           () => updateSettings({ autoZone: !cfg.autoZone }),
-        )}${
+        )}${this.button(`Animations: ${cfg.anim}`, () => updateSettings({ anim: cfg.anim === 'normal' ? 'fast' : cfg.anim === 'fast' ? 'off' : 'normal' }))}${
           this.ended ? '' : this.button('Surrender', () => this.surrender(), 'danger')
         }${this.button('Quit to main menu', () => this.opts.onExit())}</div>`;
         break;

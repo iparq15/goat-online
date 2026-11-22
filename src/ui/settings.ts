@@ -12,10 +12,12 @@ export interface Settings {
    * - 'always': pregunta en cada oportunidad (como "always chain" de EDOPro).
    */
   chains: 'smart' | 'always';
+  /** Animaciones del duelo. */
+  anim: 'normal' | 'fast' | 'off';
 }
 
 const KEY = 'goat.settings';
-const DEFAULTS: Settings = { sound: true, autoZone: true, chains: 'smart' };
+const DEFAULTS: Settings = { sound: true, autoZone: true, chains: 'smart', anim: 'normal' };
 
 let current: Settings = load();
 

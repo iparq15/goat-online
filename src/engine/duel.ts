@@ -51,6 +51,25 @@ const SELECT_TYPES = new Set<number>([
   OcgMessageType.ANNOUNCE_NUMBER,
 ]);
 
+/** Fisher-Yates con splitmix64 sembrado por la semilla del duelo y el equipo. */
+export function shuffled(cards: number[], seed: readonly bigint[], team: number): number[] {
+  const M = (1n << 64n) - 1n;
+  let s = (seed[0] ^ (seed[1] << 1n) ^ (seed[2] << 2n) ^ (seed[3] << 3n) ^ BigInt(team + 1) * 0x9e3779b97f4a7c15n) & M;
+  const next = (): bigint => {
+    s = (s + 0x9e3779b97f4a7c15n) & M;
+    let z = s;
+    z = ((z ^ (z >> 30n)) * 0xbf58476d1ce4e5b9n) & M;
+    z = ((z ^ (z >> 27n)) * 0x94d049bb133111ebn) & M;
+    return z ^ (z >> 31n);
+  };
+  const out = [...cards];
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Number(next() % BigInt(i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
+
 export function isSelectMessage(m: OcgMessage): boolean {
   return SELECT_TYPES.has(m.type);
 }
@@ -118,7 +137,9 @@ export class GoatDuel {
           sequence: 0,
           position: OcgPosition.FACEDOWN_DEFENSE,
         });
-      for (const code of deck.main) add(code, OcgLocation.DECK);
+      // El motor no baraja al empezar: se baraja aquí, con un generador derivado de la semilla
+      // del duelo (así la misma semilla reproduce el mismo duelo al reconstruirlo).
+      for (const code of shuffled(deck.main, setup.seed, team)) add(code, OcgLocation.DECK);
       for (const code of deck.extra) add(code, OcgLocation.EXTRA);
     });
     core.startDuel(handle);
