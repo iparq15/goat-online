@@ -5,9 +5,11 @@
 import '@fontsource/press-start-2p/400.css';
 import '@fontsource/pixelify-sans/400.css';
 import '@fontsource/pixelify-sans/600.css';
+import '@fontsource/jersey-10/400.css';
 import './style.css';
 import { validateDeck, type Deck } from '../engine/ydk.ts';
 import { loadAssets, type Assets } from './assets.ts';
+import { loadNameFont } from './card-view.ts';
 import { showDeckList } from './deck-editor.ts';
 import { listDecks, migrateLegacy } from './deck-store.ts';
 import { DuelClient } from './duel-client.ts';
@@ -75,10 +77,12 @@ initSfx();
 async function boot(): Promise<void> {
   app.innerHTML = `<div class="screen center"><div class="logo">GOAT<br><span>ONLINE</span></div><div class="loadbar"><i id="lb"></i></div><p class="muted">Loading cards…</p></div>`;
   try {
+    const font = loadNameFont();
     assets = await loadAssets((done, total) => {
       const lb = document.getElementById('lb');
       if (lb) lb.style.width = `${(done / total) * 100}%`;
     });
+    await font;
     initText(assets.data, assets.strings);
     await migrateLegacy();
     // Enlace de invitación: ?room=CODE abre el lobby con el código puesto.

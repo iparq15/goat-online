@@ -118,12 +118,17 @@ Con `server/.dev.vars` = `DEBUG=1`, la derrota por desconexión es a los 6 s par
 
 - **Barajado inicial:** el motor de EDOPro no baraja el mazo al empezar (lo hace el cliente), así
   que `GoatDuel` lo baraja con un generador derivado de la semilla del duelo (reproducible).
-- **Ilustraciones pixel propias** (`src/ui/sprites.ts`): un icono 16x16 por tipo de monstruo,
-  coloreado con su atributo, y por subtipo de magia/trampa, sobre un emblema tenue único de cada
-  carta. No se usa el arte oficial.
-- **Iconos propios de las cartas más jugadas** (`src/ui/card-sprites.ts`): 73 cartas clave de GOAT
-  (Scapegoat, Pot of Greed, Mirror Force, Jinzo, los Monarcas…) tienen un icono 16x16 dibujado a
-  mano que representa su nombre o su efecto (diseño propio, no basado en las ilustraciones).
+- **Ilustraciones pixel propias** (diseño propio, no se usa el arte oficial):
+  - Las **200 cartas más jugadas** de GOAT (Scapegoat, Pot of Greed, Mirror Force, Jinzo, los
+    Monarcas, los LV con su nivel…) tienen un icono 16x16 dibujado a mano que representa su nombre o
+    su efecto (`src/ui/card-sprites*.ts`).
+  - El resto lleva un **logo genérico de su clase** (`src/ui/sprites.ts`): monstruo normal, de
+    efecto (estrella), ritual (llama) y de fusión (espiral), coloreado con su atributo; magia normal,
+    rápida, continua, de equipo, de campo y ritual; trampa normal, continua y de contraefecto; token.
+  - Todos sobre un emblema tenue único de cada carta.
+- **Nombres completos:** las cartas pequeñas muestran el nombre entero con una fuente pixel
+  condensada (Jersey 10) en el tamaño que hace falta: `nameFit()` mide cada palabra y elige uno
+  de cinco tamaños (comprobado con los 1698 nombres del pool en cartas de 48 a 60 px).
 - **Animaciones** (`src/ui/fx.ts`, diseño propio): activar (carta grande con rayos), ataque
   (embestida y corte), destrucción (fragmentos pixel), salida del campo hacia mano/mazo/desterradas,
   invocación normal/especial/volteo, colocar, robar, barajar, daño (sacudida y LP que bajan),
@@ -135,5 +140,5 @@ Con `server/.dev.vars` = `DEBUG=1`, la derrota por desconexión es a los 6 s par
 - ygopro-core y los scripts de cartas (CardScripts/DeltaBagooska) de Project Ignis: AGPL-3.0.
 - `ocgcore-wasm`: MIT.
 - Textos del sistema (`config/strings.conf` de EDOPro): Project Ignis.
-- Fuentes Press Start 2P y Pixelify Sans: SIL Open Font License.
+- Fuentes Press Start 2P, Pixelify Sans y Jersey 10: SIL Open Font License.
 - Nombres y textos de las cartas: © Konami. La app no incluye ilustraciones de cartas.

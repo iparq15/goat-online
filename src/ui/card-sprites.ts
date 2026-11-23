@@ -8,8 +8,12 @@
 // Leyenda (además de la de sprites.ts: k a b c w y g r):
 //   e verde · u azul · p morado · n marrón · s piel · d gris oscuro · o naranja
 
+import { MONSTER_SPRITES } from './card-sprites-monsters.ts';
+import { SPELL_TRAP_SPRITES } from './card-sprites-spells.ts';
+import { over } from './sprite-tools.ts';
+
 // prettier-ignore
-export const CARD_SPRITES: Record<number, string[]> = {
+const BASE: Record<number, string[]> = {
   // ---------------------------------------------------------------- magias
   73915051: [ // Scapegoat
     '................',
@@ -1329,4 +1333,31 @@ export const CARD_SPRITES: Record<number, string[]> = {
     '................',
     '................',
   ],
+};
+
+// Book of Taiyou: el libro de Book of Moon con un sol en vez de la luna.
+// prettier-ignore
+const SUN = [
+  '................',
+  '....y..y..y.....',
+  '.....kkkkk......',
+  '..y.kyyyyyk.y...',
+  '....kyywyyk.....',
+  '..y.kyyyyyk.y...',
+  '.....kkkkk......',
+  '....y..y..y.....',
+];
+const book = BASE[14087893]!;
+const taiyou = [...SUN, ...book.slice(8)];
+
+// Skilled Dark Magician: mago con tres contadores de magia.
+const skilled = over(MONSTER_SPRITES[73752131]!, ['.k.', 'kyk', '.k.', '...', '.k.', 'kyk', '.k.', '...', '.k.', 'kyk', '.k.'], 0, 0);
+
+/** Icono propio de cada carta clave, por código raíz (alias || código). */
+export const CARD_SPRITES: Record<number, string[]> = {
+  ...BASE,
+  ...MONSTER_SPRITES,
+  ...SPELL_TRAP_SPRITES,
+  38699854: taiyou, // Book of Taiyou
+  73752131: skilled, // Skilled Dark Magician
 };

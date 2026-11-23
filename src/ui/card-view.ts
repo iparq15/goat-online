@@ -1,9 +1,9 @@
 // Cartas sin ilustración oficial: marco pixel propio + un icono pixel original (propio de la carta
-// en las más jugadas, src/ui/card-sprites.ts; si no, según su tipo, src/ui/sprites.ts) sobre un
-// emblema generado a partir del código de la carta.
+// en las 200 más jugadas, src/ui/card-sprites.ts; si no, un logo genérico de su clase,
+// src/ui/sprites.ts) sobre un emblema generado a partir del código de la carta.
 
 import { TYPE, type CardInfo } from '../engine/data.ts';
-import { RACE_SPRITE, SPRITES } from './sprites.ts';
+import { SPRITES } from './sprites.ts';
 import { CARD_SPRITES } from './card-sprites.ts';
 import { ATTRIBUTE_SHORT, card, cardName, esc, spellIcon, typeLine, attributeName, POSITION_NAME } from './text.ts';
 
@@ -48,7 +48,7 @@ const FIXED: Record<string, string> = {
   e: '#5fd36b', u: '#4aa3ff', p: '#a46be0', n: '#8a5a2e', s: '#f2c29a', d: '#3a3350', o: '#ff8a2a',
 };
 
-/** Qué icono lleva la carta: tipo de monstruo o subtipo de magia/trampa. */
+/** Logo genérico (cartas sin icono propio): clase de monstruo o subtipo de magia/trampa. */
 function spriteFor(c: CardInfo | undefined): string {
   if (!c) return 'token';
   const t = c.type;
@@ -66,8 +66,10 @@ function spriteFor(c: CardInfo | undefined): string {
     if (t & 0x100000) return 'counter';
     return 'trap';
   }
-  const race = Number(c.race);
-  return RACE_SPRITE[race & -race] ?? 'token';
+  if (t & TYPE.FUSION) return 'fusion';
+  if (t & TYPE.RITUAL) return 'ritualmonster';
+  if (t & TYPE.EFFECT) return 'effect';
+  return 'monster';
 }
 
 /**
@@ -188,7 +190,7 @@ export function miniCard(code: number, o: MiniOpts = {}): string {
   } else if (c) {
     bottom = `<div class="cs st">${c.type & TYPE.SPELL ? 'SPELL' : 'TRAP'} ${spellIcon(c.type)}</div>`;
   }
-  return `<div class="${cls.join(' ')}" ${data}><div class="cn">${esc(cardName(code))}</div><div class="ca" style="--img:url(${sigilUrl(code)})">${badge}</div>${bottom}</div>`;
+  return `<div class="${cls.join(' ')}" ${data}><div class="cn ${nameFit(cardName(code))}">${esc(cardName(code))}</div><div class="ca" style="--img:url(${sigilUrl(code)})">${badge}</div>${bottom}</div>`;
 }
 
 const fmtStat = (n: number) => (n < 0 ? '?' : String(n));
@@ -225,4 +227,59 @@ export function cardInfoHtml(code: number, stats?: { attack?: number; defense?: 
   }
   lines.push(`<p class="desc">${esc(c.desc).replace(/\r?\n/g, '<br>')}</p>`);
   return lines.join('');
+}
+
+// --- Nombres completos en las cartas pequeñas --------------------------------------------------
+
+/** Tamaños del nombre (fracción del ancho de la carta), de n1 a n5; igual que en style.css. */
+const NAME_SIZES = [0.2, 0.18, 0.16, 0.14, 0.12];
+const REF_CW = 46; // carta más estrecha habitual (campo en un iPhone SE)
+const fitCache = new Map<string, string>();
+let measureCtx: CanvasRenderingContext2D | null = null;
+
+/** Carga la fuente condensada de los nombres (para medirlos bien). */
+export const loadNameFont = (): Promise<unknown> =>
+  document.fonts?.load('20px "Jersey 10"').catch(() => undefined) ?? Promise.resolve();
+
+/**
+ * Clase de tamaño (n1…n5) con la que el nombre cabe entero en la carta: mide cada palabra con la
+ * fuente condensada y reparte en líneas como el navegador.
+ */
+export function nameFit(name: string): string {
+  const hit = fitCache.get(name);
+  if (hit) return hit;
+  const ready = document.fonts?.check('20px "Jersey 10"') ?? false;
+  if (!ready) return name.length <= 15 ? 'n1' : name.length <= 22 ? 'n3' : 'n5';
+  measureCtx ??= document.createElement('canvas').getContext('2d');
+  const g = measureCtx;
+  if (!g) return 'n3';
+  g.font = '100px "Jersey 10"';
+  const space = g.measureText(' ').width / 100;
+  // Palabras; los guiones también permiten salto de línea ("Dual-Mode").
+  const words = name.split(' ').flatMap((w) => w.split(/(?<=-)/)).map((w) => g.measureText(w).width / 100);
+  const availW = REF_CW - 10;
+  const availH = REF_CW * 0.4 - 2;
+  let cls = 'n5';
+  for (let i = 0; i < NAME_SIZES.length; i++) {
+    const px = NAME_SIZES[i]! * REF_CW;
+    let lines = 1;
+    let x = 0;
+    let ok = true;
+    for (const w of words) {
+      const ww = w * px;
+      if (ww > availW) ok = false;
+      if (x === 0) x = ww;
+      else if (x + space * px + ww <= availW) x += space * px + ww;
+      else {
+        lines++;
+        x = ww;
+      }
+    }
+    if (ok && lines * px * 0.9 <= availH) {
+      cls = `n${i + 1}`;
+      break;
+    }
+  }
+  fitCache.set(name, cls);
+  return cls;
 }
