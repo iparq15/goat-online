@@ -235,22 +235,39 @@ export class DuelClient {
         }
         case T.MOVE: {
           // Cartas que salen del campo; las consecutivas se animan a la vez (p. ej. Heavy Storm).
+          // Las que van de la mano o del mazo al cementerio se enseñan un momento (descartes,
+          // costes, Graceful Charity…) y caen en él.
           const group: Promise<void>[] = [];
+          const shown: { html: string; to: Box | null; controller: number }[] = [];
+          const graves = new Set<number>();
+          let fromHand = false;
           let j = i;
           for (; j < evs.length; j++) {
             const mv = evs[j];
             if (mv.type !== T.MOVE) break;
             const from = mv.from.location;
             const to = mv.to.location;
+            if (to === 16) graves.add(mv.to.controller);
             if ((from === 4 || from === 8) && to !== 4 && to !== 8) {
               const z = this.fx.zone(this.zoneKey(mv.from));
               if (!z) continue;
               const destroyed = (mv.reason & 0x1) !== 0;
               group.push(destroyed ? this.fx.shatter(z) : this.fx.fly(z, this.destBox(mv.to.controller, to)));
+            } else if ((from === 2 || from === 1) && to === 16 && mv.card) {
+              shown.push({ html: miniCard(mv.card), to: this.destBox(mv.to.controller, 16), controller: mv.to.controller });
+              if (from === 2) fromHand = true;
             }
           }
           i = j - 1;
+          if (group.length || shown.length || graves.size) play('grave');
           if (group.length) await Promise.all(group);
+          if (shown.length) {
+            const mine = shown.every((c) => c.controller === me);
+            const who = this.opts.hotseat || mine ? '' : "OPPONENT'S ";
+            const label = fromHand ? `${who}DISCARD` : `${who}SENT TO GY`;
+            await this.fx.toGrave(shown, label, mine || !!this.opts.hotseat);
+          }
+          await Promise.all([...graves].map((p) => this.fx.pile(`${p}:16`)).filter((e): e is HTMLElement => !!e).map((e) => this.fx.pulse(e)));
           break;
         }
         case T.DAMAGE: {

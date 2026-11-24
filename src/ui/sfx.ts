@@ -4,7 +4,7 @@
 
 import { settings } from './settings.ts';
 
-export type Sfx = 'tap' | 'draw' | 'summon' | 'set' | 'activate' | 'attack' | 'damage' | 'heal' | 'turn' | 'decide' | 'win' | 'lose';
+export type Sfx = 'tap' | 'draw' | 'summon' | 'set' | 'activate' | 'attack' | 'damage' | 'heal' | 'turn' | 'decide' | 'win' | 'lose' | 'grave';
 
 let ctx: AudioContext | null = null;
 
@@ -53,6 +53,7 @@ const TUNES: Record<Sfx, [number, number][]> = {
   decide: [[1175, 0.05], [1568, 0.07]],
   win: [[523, 0.1], [659, 0.1], [784, 0.1], [1047, 0.25]],
   lose: [[392, 0.12], [330, 0.12], [262, 0.3]],
+  grave: [[294, 0.05], [196, 0.09]],
 };
 
 export function play(name: Sfx): void {

@@ -5,6 +5,7 @@
 import { TYPE, type CardInfo } from '../engine/data.ts';
 import { SPRITES } from './sprites.ts';
 import { CARD_SPRITES } from './card-sprites.ts';
+import { motifSprite } from './card-motifs.ts';
 import { ATTRIBUTE_SHORT, card, cardName, esc, spellIcon, typeLine, attributeName, POSITION_NAME } from './text.ts';
 
 
@@ -91,6 +92,7 @@ export function sigilUrl(code: number): string {
           ? (['#c9c9d6', '#5b5b66', '#f0f0f6'] as const)
           : (ATTR_TRIPLE[c?.attribute ?? 0] ?? (['#cccccc', '#555555', '#eeeeee'] as const));
   const own = CARD_SPRITES[c?.alias || code];
+  const motif = own || !c ? null : motifSprite(cardName(code), (c.type & TYPE.MONSTER) !== 0 && !(c.type & TYPE.TOKEN), Number(c.race), c.category);
   const N = 16;
   const cv = document.createElement('canvas');
   cv.width = cv.height = N;
@@ -98,7 +100,7 @@ export function sigilUrl(code: number): string {
   g.fillStyle = '#120c22';
   g.fillRect(0, 0, N, N);
   // Fondo: emblema simétrico tenue, único para cada carta.
-  g.globalAlpha = own ? 0.14 : 0.28;
+  g.globalAlpha = own ? 0.14 : motif ? 0.2 : 0.28;
   for (let y = 0; y < 8; y++) {
     for (let x = 0; x < 4; x++) {
       if (rnd() > 0.5) continue;
@@ -108,7 +110,7 @@ export function sigilUrl(code: number): string {
   }
   g.globalAlpha = 1;
   const colors: Record<string, string> = { ...FIXED, a, b, c: l };
-  const rows = own ?? SPRITES[spriteFor(c)] ?? [];
+  const rows = own ?? motif ?? SPRITES[spriteFor(c)] ?? [];
   rows.forEach((row, y) => {
     for (let x = 0; x < Math.min(16, row.length); x++) {
       const ch = row[x];

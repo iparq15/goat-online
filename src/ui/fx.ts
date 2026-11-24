@@ -191,6 +191,53 @@ export class Fx {
     g.remove();
   }
 
+  /**
+   * Cartas enviadas al cementerio desde la mano o el mazo (descartes, costes, Graceful Charity…):
+   * se muestran un momento en el centro y caen cada una en su cementerio.
+   */
+  async toGrave(cards: { html: string; to: Box | null }[], label: string, mine: boolean): Promise<void> {
+    if (!cards.length) return;
+    const wrap = document.createElement('div');
+    wrap.className = `fx-grave ${mine ? 'mine' : 'theirs'}`;
+    wrap.innerHTML = `<div class="fx-row">${cards.map((c) => `<div class="fx-gc">${c.html}</div>`).join('')}</div><div class="fx-label">${label}</div>`;
+    this.layer().appendChild(wrap);
+    const els = [...wrap.querySelectorAll<HTMLElement>('.fx-gc')];
+    const label$ = wrap.querySelector<HTMLElement>('.fx-label')!;
+    // Entrada: aparecen una tras otra.
+    await Promise.all([
+      this.run(wrap, [{ background: '#0a061800' }, { background: '#0a0618aa' }], 200),
+      this.run(label$, [{ opacity: 0 }, { opacity: 1 }], 200),
+      ...els.map((el, i) =>
+        this.run(el, [{ transform: 'translateY(30px) scale(0.4)', opacity: 0 }, { transform: 'translateY(-4px) scale(1.06)', opacity: 1, offset: 0.7 }, { transform: 'none', opacity: 1 }], 260, { delay: this.ms(i * 90), easing: 'steps(5)' }),
+      ),
+    ]);
+    await this.wait(650);
+    // Salida: cada carta cae en su cementerio.
+    const base = this.box(this.root);
+    await Promise.all([
+      this.run(label$, [{ opacity: 1 }, { opacity: 0 }], 200),
+      this.run(wrap, [{ background: '#0a0618aa' }, { background: '#0a061800' }], 420),
+      ...els.map((el, i) => {
+        const b = this.box(el);
+        const t = cards[i]!.to ?? { x: b.x, y: base.h, w: b.w, h: b.h };
+        const dx = t.x + t.w / 2 - (b.x + b.w / 2);
+        const dy = t.y + t.h / 2 - (b.y + b.h / 2);
+        return this.run(el, [{ transform: 'none', opacity: 1 }, { transform: `translate(${dx}px,${dy}px) scale(0.45)`, opacity: 0.35 }], 380, { delay: this.ms(i * 50), easing: 'ease-in' });
+      }),
+    ]);
+    wrap.remove();
+  }
+
+  /** Una pila (cementerio) destella al recibir cartas. */
+  async pulse(pileEl: HTMLElement): Promise<void> {
+    await this.run(
+      pileEl,
+      [{ filter: 'brightness(1)', transform: 'scale(1)' }, { filter: 'brightness(2.2)', transform: 'scale(1.08)', offset: 0.35 }, { filter: 'brightness(1)', transform: 'scale(1)' }],
+      380,
+      { easing: 'steps(5)', fill: 'none' },
+    );
+  }
+
   /** Mazo barajado: la pila se agita. */
   async shuffle(pileEl: HTMLElement): Promise<void> {
     await this.run(

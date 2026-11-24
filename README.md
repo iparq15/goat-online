@@ -118,14 +118,19 @@ Con `server/.dev.vars` = `DEBUG=1`, la derrota por desconexión es a los 6 s par
 
 - **Barajado inicial:** el motor de EDOPro no baraja el mazo al empezar (lo hace el cliente), así
   que `GoatDuel` lo baraja con un generador derivado de la semilla del duelo (reproducible).
-- **Ilustraciones pixel propias** (diseño propio, no se usa el arte oficial):
-  - Las **200 cartas más jugadas** de GOAT (Scapegoat, Pot of Greed, Mirror Force, Jinzo, los
-    Monarcas, los LV con su nivel…) tienen un icono 16x16 dibujado a mano que representa su nombre o
-    su efecto (`src/ui/card-sprites*.ts`).
-  - El resto lleva un **logo genérico de su clase** (`src/ui/sprites.ts`): monstruo normal, de
-    efecto (estrella), ritual (llama) y de fusión (espiral), coloreado con su atributo; magia normal,
-    rápida, continua, de equipo, de campo y ritual; trampa normal, continua y de contraefecto; token.
-  - Todos sobre un emblema tenue único de cada carta.
+- **Ilustraciones pixel propias** (diseño propio, no se usa el arte oficial). Cada carta del pool
+  (1693) lleva, por orden de preferencia:
+  1. Su **icono dibujado a mano** (las 200 más jugadas: Scapegoat, Pot of Greed, Mirror Force,
+     Jinzo, los Monarcas, los LV con su nivel…), `src/ui/card-sprites*.ts`.
+  2. Un **motivo según su nombre** (~85 motivos: dragón, espada, calavera, fantasma, corona,
+     tortuga, ojo, rayo…; `src/ui/card-motifs.ts` y `motif-sprites.ts`) coloreado con su atributo.
+     Cubre 1133 cartas más: en total, 1332 cartas con un icono que representa su nombre.
+  3. Si el nombre no da pistas: el **tipo del monstruo** (`race-motifs.ts`) o **lo que hace la
+     magia/trampa** (destruir, robar, buscar, daño, recuperar LP, negar, invocar…): 276 cartas.
+  4. El **logo genérico de su clase** (`src/ui/sprites.ts`): las 85 restantes.
+- **Cartas al cementerio:** las que salen del campo estallan (destruidas) o vuelan hasta su destino;
+  las que van de la mano o del mazo al cementerio (descartes, costes, Graceful Charity…) se
+  muestran un momento en el centro ("DISCARD" / "SENT TO GY") y caen en él, que destella.
 - **Nombres completos:** las cartas pequeñas muestran el nombre entero con una fuente pixel
   condensada (Jersey 10) en el tamaño que hace falta: `nameFit()` mide cada palabra y elige uno
   de cinco tamaños (comprobado con los 1698 nombres del pool en cartas de 48 a 60 px).
