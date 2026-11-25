@@ -7,3 +7,5 @@ server/.dev.vars
 # Packs de ilustraciones de uso personal: nunca en el repo.
 *.zip
 goat-card-pack/
+*.mp3
+*.m4a

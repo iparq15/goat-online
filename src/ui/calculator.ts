@@ -1,6 +1,7 @@
 // Modo marcador (LP Calculator) para duelos en físico: dos marcadores de LP, teclado con
 // + − × ÷, ceros automáticos, historial con deshacer, moneda y dado. Se guarda en el dispositivo.
 
+import { playCustomSound } from './custom-sound.ts';
 import { play } from './sfx.ts';
 import { keepAwake } from './wake.ts';
 
@@ -140,7 +141,7 @@ export function showCalculator(app: HTMLElement, onBack: () => void): void {
     st.log.unshift({ p: target, before, text: `${st.names[target]}: ${before} ${OPS[o]} ${n} = ${after}` });
     st.log = st.log.slice(0, 200);
     save(st);
-    play(after < before ? 'damage' : 'heal');
+    if (!playCustomSound()) play(after < before ? 'damage' : 'heal');
     op = null;
     digits = '';
     tween(target, after);

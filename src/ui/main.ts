@@ -11,6 +11,7 @@ import { validateDeck, type Deck } from '../engine/ydk.ts';
 import { loadAssets, type Assets } from './assets.ts';
 import { loadNameFont } from './card-view.ts';
 import { clearPics, importPics, loadPics, picCount } from './card-pics.ts';
+import { customSoundName, importCustomSound, loadCustomSound, playCustomSound, removeCustomSound } from './custom-sound.ts';
 import { showCalculator } from './calculator.ts';
 import { showDeckList } from './deck-editor.ts';
 import { listDecks, migrateLegacy } from './deck-store.ts';
@@ -81,11 +82,12 @@ async function boot(): Promise<void> {
   try {
     const font = loadNameFont();
     const pics = loadPics();
+    const lpSound = loadCustomSound();
     assets = await loadAssets((done, total) => {
       const lb = document.getElementById('lb');
       if (lb) lb.style.width = `${(done / total) * 100}%`;
     });
-    await Promise.all([font, pics]);
+    await Promise.all([font, pics, lpSound]);
     initText(assets.data, assets.strings);
     await migrateLegacy();
     // Enlace de invitación: ?room=CODE abre el lobby con el código puesto.
@@ -160,9 +162,44 @@ function settingsScreen(): void {
       </div>
       <p class="muted small">Your own pictures (one image per card, named by card code). They stay on this device only; cards without a picture keep their pixel icon.</p>
     </fieldset>
+    <fieldset>
+      <legend>LP calculator sound</legend>
+      <p class="small" id="snd-status"></p>
+      <div class="mbtns">
+        <label class="btn">Import sound<input type="file" id="snd-in" accept="audio/*,.mp3,.m4a,.wav" hidden></label>
+        <button class="btn" id="snd-test">Test</button>
+        <button class="btn danger" id="snd-clear">Remove</button>
+      </div>
+      <p class="muted small">Your own audio file, played when you press = in the LP calculator. It stays on this device only.</p>
+    </fieldset>
     <div class="mbtns col"><button class="btn go" id="s-back">Done</button></div>
     <p class="muted small">Settings are saved on this device.</p>
   </div>`;
+  const sndStatus = document.getElementById('snd-status')!;
+  const showSound = (): void => {
+    const n = customSoundName();
+    sndStatus.textContent = n ? `Sound: ${n}` : 'No sound yet: the calculator uses its own beep.';
+    (document.getElementById('snd-test') as HTMLButtonElement).hidden = !n;
+    (document.getElementById('snd-clear') as HTMLButtonElement).hidden = !n;
+  };
+  showSound();
+  const sndIn = document.getElementById('snd-in') as HTMLInputElement;
+  sndIn.onchange = async () => {
+    const f = sndIn.files?.[0];
+    sndIn.value = '';
+    if (!f) return;
+    try {
+      await importCustomSound(f);
+      showSound();
+    } catch (e) {
+      sndStatus.textContent = e instanceof Error ? e.message : String(e);
+    }
+  };
+  document.getElementById('snd-test')!.onclick = () => playCustomSound();
+  document.getElementById('snd-clear')!.onclick = async () => {
+    await removeCustomSound();
+    showSound();
+  };
   const status = document.getElementById('pic-status')!;
   const showCount = (): void => {
     const n = picCount();
