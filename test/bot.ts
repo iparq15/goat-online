@@ -79,6 +79,10 @@ export function botRespond(msg: OcgMessage, rng: Rng, st: BotState, attempt: num
       if (attempt === 0 && msg.chains.length && rng() < 0.3) {
         return { type: OcgResponseType.SELECT_BATTLECMD, action: SelectBattleCMDAction.SELECT_CHAIN, index: Math.floor(rng() * msg.chains.length) };
       }
+      // Sin poder salir de la batalla (p. ej. Berserk Gorilla debe atacar): atacar.
+      if (!msg.to_m2 && !msg.to_ep && msg.attacks.length) {
+        return { type: OcgResponseType.SELECT_BATTLECMD, action: SelectBattleCMDAction.SELECT_BATTLE, index: attempt % msg.attacks.length };
+      }
       return {
         type: OcgResponseType.SELECT_BATTLECMD,
         action: msg.to_m2 ? SelectBattleCMDAction.TO_M2 : SelectBattleCMDAction.TO_EP,

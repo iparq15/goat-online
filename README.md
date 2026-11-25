@@ -53,8 +53,12 @@ limitada y fuentes de mapa de bits (Press Start 2P y Pixelify Sans, licencia OFL
   modos.
 - Duelo de práctica: los dos jugadores en el mismo móvil. La pantalla gira hacia quien tiene que
   decidir; opcionalmente se tapa al cambiar de jugador.
-- Mazos de inicio legales en GOAT (`src/ui/starter-decks.ts`, comprobados con
-  `node scripts/check-starters.ts`) e importación de `.ydk`.
+- Mazos de inicio: versiones estándar de 11 arquetipos de GOAT (Chaos Turbo, Chaos Control, Chaos
+  Ritual, Warrior, Earth/Water/Wind Aggro, Goat Control, Water Control, Phoenix Control y Soul
+  Control). Las listas por nombre están en `scripts/build-starters.ts`, que genera
+  `src/ui/starter-decks.ts` y comprueba que son legales; `node test/starters-duel.ts 22` los
+  enfrenta entre sí con bots para comprobar que todas sus cartas funcionan. También hay importación
+  de `.ydk`.
 - La interfaz está en inglés (textos del sistema de `config/strings.conf` de EDOPro; textos de las
   cartas, en inglés).
 
