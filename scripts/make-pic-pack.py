@@ -5,17 +5,21 @@ recorta la ilustración, la reduce a 48x48 con una paleta corta (aspecto pixel) 
 con un PNG por carta del pool GOAT (<código raíz>.png). Ese .zip se importa en la app desde
 Settings → Card pictures, y se guarda solo en el dispositivo.
 
-    python scripts/make-pic-pack.py [salida.zip]
+    python scripts/make-pic-pack.py [--fetch-missing] [salida.zip]
+
+--fetch-missing: antes, descarga a pics/ las imágenes del pool que EDOPro aún no tenía, desde el
+mismo servidor que usa EDOPro (lo mismo que hace EDOPro al abrir cada carta).
 
 Por defecto: %USERPROFILE%/OneDrive/Documentos/goat-card-pack/goat-pics.zip (fuera del repo).
-Las cartas sin imagen en pics/ siguen con su icono pixel; abre esas cartas en EDOPro para que las
-descargue y vuelve a ejecutar el script.
+Las cartas sin imagen en pics/ siguen con su icono pixel (usa --fetch-missing para completarlas).
 """
 
 import io
 import json
 import os
 import sys
+import time
+import urllib.request
 import zipfile
 
 from PIL import Image, ImageEnhance
@@ -25,7 +29,11 @@ IGNIS = os.environ.get('PROJECT_IGNIS', 'C:/ProjectIgnis')
 PICS = os.path.join(IGNIS, 'pics')
 SIZE = 48
 COLORS = 48
-OUT = sys.argv[1] if len(sys.argv) > 1 else os.path.join(
+ARGS = [a for a in sys.argv[1:] if not a.startswith('--')]
+FETCH = '--fetch-missing' in sys.argv
+# URL por defecto de EDOPro para las imágenes de cartas.
+PIC_URL = 'https://pics.projectignis.org:2096/pics/{}.jpg'
+OUT = ARGS[0] if ARGS else os.path.join(
     os.path.expanduser('~'), 'OneDrive', 'Documentos', 'goat-card-pack', 'goat-pics.zip')
 
 # El pack nunca debe acabar dentro del proyecto (se publicaría).
@@ -49,12 +57,38 @@ def pixelate(path: str) -> bytes:
     return buf.getvalue()
 
 
+def fetch(code: int) -> bool:
+    dest = os.path.join(PICS, f'{code}.jpg')
+    try:
+        req = urllib.request.Request(PIC_URL.format(code), headers={'User-Agent': 'goat-online-pic-pack'})
+        with urllib.request.urlopen(req, timeout=20) as r:
+            data = r.read()
+        if len(data) < 1000:
+            return False
+        with open(dest, 'wb') as f:
+            f.write(data)
+        return True
+    except Exception:
+        return False
+
+
 def main() -> None:
     cards = json.load(open(os.path.join(ROOT, 'data', 'goat', 'cards.json'), encoding='utf8'))
     pool: dict[int, list[int]] = {}
     for c in cards:
         if c['inPool']:
             pool.setdefault(c['alias'] or c['code'], []).append(c['code'])
+    if FETCH:
+        got = failed = 0
+        for root, codes in sorted(pool.items()):
+            if any(os.path.exists(os.path.join(PICS, f'{c}.jpg')) for c in [root, *codes]):
+                continue
+            if any(fetch(c) for c in [root, *codes]):
+                got += 1
+            else:
+                failed += 1
+            time.sleep(0.15)
+        print(f'Descargadas {got} imágenes que faltaban · {failed} no disponibles')
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     done = missing = 0
     total = 0
