@@ -11,6 +11,7 @@ import { validateDeck, type Deck } from '../engine/ydk.ts';
 import { loadAssets, type Assets } from './assets.ts';
 import { loadNameFont } from './card-view.ts';
 import { clearPics, importPics, loadPics, picCount } from './card-pics.ts';
+import { showCalculator } from './calculator.ts';
 import { showDeckList } from './deck-editor.ts';
 import { listDecks, migrateLegacy } from './deck-store.ts';
 import { DuelClient } from './duel-client.ts';
@@ -122,6 +123,7 @@ function menu(): void {
       <button class="btn ${session ? '' : 'go '}big" id="m-online">Online duel</button>
       <button class="btn big" id="m-practice">Practice duel</button>
       <button class="btn big" id="m-decks">My decks</button>
+      <button class="btn big" id="m-calc">LP calculator</button>
       <button class="btn" id="m-settings">Settings</button>
     </div>
     <button class="btn go" id="m-update" ${updateReady ? '' : 'hidden'}>New version ready · tap to update</button>
@@ -135,6 +137,7 @@ function menu(): void {
   };
   if (session) document.getElementById('m-resume')!.onclick = () => (fresh(), playRoom(onlineCtx(), session));
   document.getElementById('m-decks')!.onclick = decks;
+  document.getElementById('m-calc')!.onclick = () => (fresh(), showCalculator(app, menu));
   document.getElementById('m-settings')!.onclick = settingsScreen;
   document.getElementById('m-update')!.onclick = () => location.reload();
 }

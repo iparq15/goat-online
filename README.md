@@ -139,6 +139,14 @@ Con `server/.dev.vars` = `DEBUG=1`, la derrota por desconexión es a los 6 s par
   invocación normal/especial/volteo, colocar, robar, barajar, daño (sacudida y LP que bajan),
   negación y cambio de turno. Velocidad normal/rápida/sin animaciones en Settings.
 
+## Modo marcador (duelos en físico)
+
+Menú → **LP calculator** (`src/ui/calculator.ts`): marcadores de los dos jugadores (toca uno para
+elegirlo y su nombre para cambiarlo), teclado con 0/00/000 y + − × ÷. Con + y −, si el número no
+termina en 0, al pulsar = se le añaden dos ceros (15 → 1500); × y ÷ usan el número tal cual (÷
+redondea hacia arriba). Historial con deshacer, moneda, dado y nueva partida a 8000 (por defecto) o
+4000. Se guarda en el dispositivo y la pantalla no se apaga mientras está abierto.
+
 ## Ilustraciones de uso personal
 
 La app no incluye ninguna ilustración. Para verlas en tu dispositivo:
