@@ -1667,3 +1667,163 @@ button,
     inset -1px -1px 0 #00000066,
     inset 0 0 0 2px var(--frame-d, #333);
 }
+
+/* ---------- Cartas con la estructura de las de Yu-Gi-Oh! (estilo pixel propio) ---------- */
+/* Nombre en una barra más baja, ilustración grande y ATK/DEF en una sola línea. */
+.card .cn {
+  height: calc(var(--cw) * 0.34);
+}
+.cn.n1 { --nf: 0.22; }
+.cn.n2 { --nf: 0.165; }
+.cn.n3 { --nf: 0.145; }
+.cn.n4 { --nf: 0.125; }
+.cn.n5 { --nf: 0.11; }
+.card .ca {
+  min-height: 0;
+}
+.card .cs {
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0;
+  font-family: var(--cond);
+  font-size: calc(var(--cw) * 0.2);
+  line-height: 0.85;
+  padding: 1px 2px 2px;
+}
+.card .cs i {
+  font-style: normal;
+  color: var(--muted);
+}
+.card .cs.st {
+  justify-content: center;
+  gap: 3px;
+  font-size: calc(var(--cw) * 0.19);
+  letter-spacing: 1px;
+}
+/* Atributo en un círculo, como en las cartas. */
+.card .attr {
+  top: 2px;
+  right: 2px;
+  width: calc(var(--cw) * 0.24);
+  height: calc(var(--cw) * 0.24);
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border-radius: 50%;
+  font-family: var(--cond);
+  font-size: calc(var(--cw) * 0.11);
+  line-height: 1;
+  color: #fff;
+  background: #555;
+  box-shadow: 0 0 0 1px #0b0b10, inset 0 1px 0 #ffffff66;
+  text-shadow: 1px 1px 0 #0008;
+}
+.attr.a1 { background: #8a5a2e; color: #fff; }
+.attr.a2 { background: #2f78d8; color: #fff; }
+.attr.a4 { background: #d8402a; color: #fff; }
+.attr.a8 { background: #2f9a46; color: #fff; }
+.attr.a16 { background: #d8a21c; color: #fff; }
+.attr.a32 { background: #6a2fa8; color: #fff; }
+.attr.a64 { background: #c08a2a; color: #fff; }
+
+/* Dorso: rectángulo azul (tuyo / Player 1) o rojo (rival / Player 2) con óvalo y contorno negros. */
+.card.k-back,
+.bigcard.k-back {
+  --back: #2f6fe0;
+  background:
+    radial-gradient(ellipse 30% 30% at 50% 50%, #0b0b10 0 94%, #0b0b1000 100%),
+    linear-gradient(135deg, #ffffff30 0%, #ffffff00 45%, #00000000 60%, #00000030 100%),
+    var(--back);
+  box-shadow: inset 0 0 0 3px #0b0b10, inset 0 0 0 4px #ffffff44;
+}
+.bigcard.k-back {
+  box-shadow: inset 0 0 0 4px #0b0b10, inset 0 0 0 5px #ffffff44, 0 0 0 2px var(--dark);
+}
+.card.k-back.bk-red,
+.bigcard.k-back.bk-red {
+  --back: #d63a3a;
+}
+
+/* Carta grande: nombre + atributo, nivel, ilustración, [tipo] y ATK/DEF. */
+.bigcard {
+  --cw: 128px;
+  width: 128px;
+  height: 190px;
+  gap: 3px;
+}
+.bhead {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  background: linear-gradient(#fffffff0, #ffffffb8);
+  padding: 2px 3px;
+}
+.bhead .cn {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  background: none;
+  font-size: 15px;
+}
+.battr {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-family: var(--cond);
+  font-size: 11px;
+  color: #fff;
+  background: #555;
+  box-shadow: 0 0 0 1px #0b0b10, inset 0 1px 0 #ffffff66;
+  text-shadow: 1px 1px 0 #0008;
+}
+.battr.a1 { background: #8a5a2e; }
+.battr.a2 { background: #2f78d8; }
+.battr.a4 { background: #d8402a; }
+.battr.a8 { background: #2f9a46; }
+.battr.a16 { background: #d8a21c; }
+.battr.a32 { background: #6a2fa8; }
+.battr.a64 { background: #c08a2a; }
+.battr.aspell { background: #1f9a78; }
+.battr.atrap { background: #b0357c; }
+.bigcard .stars {
+  font-size: 9px;
+  min-height: 9px;
+}
+.bigcard .stars.st {
+  font-family: var(--cond);
+  font-size: 12px;
+  color: #1b1230;
+}
+.bigcard .ca {
+  min-height: 0;
+}
+.btype,
+.bstat {
+  font-family: var(--cond);
+  background: #ffffffc8;
+  padding: 1px 3px;
+  line-height: 1;
+}
+.btype {
+  font-size: 11px;
+}
+.bstat {
+  font-size: 12px;
+  text-align: right;
+  margin-top: -3px;
+}
+.bstat b {
+  font-weight: 400;
+}
+.fx-big .bigcard {
+  --cw: 150px;
+  width: 150px;
+  height: 222px;
+}
+.fx-big .bigcard .bhead .cn {
+  font-size: 18px;
+}

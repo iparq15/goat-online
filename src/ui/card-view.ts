@@ -130,36 +130,6 @@ export function sigilUrl(code: number): string {
 /** ' pic' si la carta usa una ilustración importada (llena el recuadro). */
 const picClass = (code: number): string => (picUrl(card(code)?.alias || code) ? ' pic' : '');
 
-let backCache = '';
-
-/** Dorso de las cartas (diseño propio: rombos sobre añil con un núcleo ámbar). */
-export function backUrl(): string {
-  if (backCache) return backCache;
-  const W = 14;
-  const H = 20;
-  const cv = document.createElement('canvas');
-  cv.width = W;
-  cv.height = H;
-  const g = cv.getContext('2d')!;
-  g.fillStyle = '#2a1d5c';
-  g.fillRect(0, 0, W, H);
-  g.fillStyle = '#3b2a7a';
-  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if ((x + y) % 4 === 0 || (x - y + 40) % 4 === 0) g.fillRect(x, y, 1, 1);
-  const cx = W / 2;
-  const cy = H / 2;
-  for (let y = 0; y < H; y++) {
-    for (let x = 0; x < W; x++) {
-      const d = Math.abs(x + 0.5 - cx) + Math.abs(y + 0.5 - cy) * 0.8;
-      if (d < 2.2) g.fillStyle = '#ffd36b';
-      else if (d < 3.4) g.fillStyle = '#d9822b';
-      else if (d < 4.2) g.fillStyle = '#120c22';
-      else continue;
-      g.fillRect(x, y, 1, 1);
-    }
-  }
-  backCache = cv.toDataURL();
-  return backCache;
-}
 
 export interface MiniOpts {
   /** Posición (para marcar las colocadas boca abajo). */
@@ -172,6 +142,8 @@ export interface MiniOpts {
   cls?: string;
   /** Atributo data-* para la interacción. */
   data?: string;
+  /** Color del dorso (de quién es la carta): azul o rojo. */
+  back?: 'blue' | 'red';
 }
 
 /** Carta pequeña (campo, mano, listas). code 0 = dorso. */
@@ -179,9 +151,9 @@ export function miniCard(code: number, o: MiniOpts = {}): string {
   const pos = o.position ?? 1;
   const def = !!o.monster && (pos & 0xc) !== 0;
   const facedown = (pos & 0xa) !== 0;
-  const cls = ['card', def ? 'def' : '', o.cls ?? ''];
+  const cls = ['card', def ? 'def' : '', o.cls ?? '', o.back === 'red' ? 'bk-red' : 'bk-blue'];
   const data = o.data ?? '';
-  if (!code) return `<div class="${cls.join(' ')} k-back" ${data} style="--img:url(${backUrl()})"></div>`;
+  if (!code) return `<div class="${cls.join(' ')} k-back" ${data}></div>`;
   const c = card(code);
   const kind = frameKind(c);
   cls.push(`k-${kind}`);
@@ -193,7 +165,7 @@ export function miniCard(code: number, o: MiniOpts = {}): string {
     const dfn = o.defense ?? c.defense;
     const atkCls = o.attack !== undefined && o.attack !== c.attack ? (o.attack > c.attack ? 'up' : 'down') : '';
     const defCls = o.defense !== undefined && o.defense !== c.defense ? (o.defense > c.defense ? 'up' : 'down') : '';
-    bottom = `<div class="cs"><span class="${atkCls}">${fmtStat(atk)}</span><span class="${defCls}">${fmtStat(dfn)}</span></div>`;
+    bottom = `<div class="cs"><span class="${atkCls}">${fmtStat(atk)}</span><i>/</i><span class="${defCls}">${fmtStat(dfn)}</span></div>`;
     badge = `<span class="attr a${c.attribute}">${ATTRIBUTE_SHORT[c.attribute] ?? ''}</span>`;
   } else if (c) {
     bottom = `<div class="cs st">${c.type & TYPE.SPELL ? 'SPELL' : 'TRAP'} ${spellIcon(c.type)}</div>`;
@@ -205,14 +177,18 @@ const fmtStat = (n: number) => (n < 0 ? '?' : String(n));
 
 /** Carta grande para el panel de detalle. */
 export function bigCard(code: number, position?: number): string {
-  if (!code) return `<div class="bigcard k-back" style="--img:url(${backUrl()})"></div>`;
+  if (!code) return `<div class="bigcard k-back bk-blue"></div>`;
   const c = card(code);
   const kind = frameKind(c);
+  const monster = !!c && (c.type & TYPE.MONSTER) !== 0;
   let stars = '';
-  if (c && c.type & TYPE.MONSTER && c.level) stars = `<div class="stars">${'★'.repeat(Math.min(12, c.level))}</div>`;
-  const attr = c && c.type & TYPE.MONSTER ? `<span class="attr a${c.attribute}">${ATTRIBUTE_SHORT[c.attribute] ?? ''}</span>` : '';
+  if (monster && c!.level) stars = `<div class="stars">${'★'.repeat(Math.min(12, c!.level))}</div>`;
+  else if (c && !monster) stars = `<div class="stars st">${spellIcon(c.type)}</div>`;
+  const attr = monster ? `<span class="battr a${c!.attribute}">${ATTRIBUTE_SHORT[c!.attribute] ?? ''}</span>` : c ? `<span class="battr ${c.type & TYPE.SPELL ? 'aspell' : 'atrap'}">${c.type & TYPE.SPELL ? 'SPL' : 'TRP'}</span>` : '';
+  const info = c ? `<div class="btype">[${esc(typeLine(c))}]</div>` : '';
+  const stat = monster ? `<div class="bstat">ATK/<b>${fmtStat(c!.attack)}</b> DEF/<b>${fmtStat(c!.defense)}</b></div>` : '';
   const pos = position !== undefined && POSITION_NAME[position] ? `<div class="bpos">${POSITION_NAME[position]}</div>` : '';
-  return `<div class="bigcard k-${kind}"><div class="cn">${esc(cardName(code))}</div>${stars}<div class="ca${picClass(code)}" style="--img:url(${sigilUrl(code)})">${attr}</div>${pos}</div>`;
+  return `<div class="bigcard k-${kind}"><div class="bhead"><div class="cn">${esc(cardName(code))}</div>${attr}</div>${stars}<div class="ca${picClass(code)}" style="--img:url(${sigilUrl(code)})"></div>${info}${stat}${pos}</div>`;
 }
 
 /** Ficha de texto de la carta (para el panel de detalle). */
@@ -240,7 +216,7 @@ export function cardInfoHtml(code: number, stats?: { attack?: number; defense?: 
 // --- Nombres completos en las cartas pequeñas --------------------------------------------------
 
 /** Tamaños del nombre (fracción del ancho de la carta), de n1 a n5; igual que en style.css. */
-const NAME_SIZES = [0.2, 0.18, 0.16, 0.14, 0.12];
+const NAME_SIZES = [0.22, 0.165, 0.145, 0.125, 0.11];
 const REF_CW = 46; // carta más estrecha habitual (campo en un iPhone SE)
 const fitCache = new Map<string, string>();
 let measureCtx: CanvasRenderingContext2D | null = null;
@@ -266,7 +242,7 @@ export function nameFit(name: string): string {
   // Palabras; los guiones también permiten salto de línea ("Dual-Mode").
   const words = name.split(' ').flatMap((w) => w.split(/(?<=-)/)).map((w) => g.measureText(w).width / 100);
   const availW = REF_CW - 10;
-  const availH = REF_CW * 0.4 - 2;
+  const availH = REF_CW * 0.34 - 2;
   let cls = 'n5';
   for (let i = 0; i < NAME_SIZES.length; i++) {
     const px = NAME_SIZES[i]! * REF_CW;

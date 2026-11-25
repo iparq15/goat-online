@@ -49,6 +49,8 @@ export interface ClientOptions {
   names: [string, string];
   /** Duelo local: los dos jugadores están en este móvil. */
   hotseat?: boolean;
+  /** Mismo móvil: asiento de este cliente (0 = Player 1, 1 = Player 2). */
+  seat?: number;
   onExit: () => void;
   /** Cambió algo (para el modo de dos jugadores en el mismo móvil). */
   onChange?: () => void;
@@ -794,7 +796,7 @@ export class DuelClient {
         .map((c, i) => {
           const k = key(me, 2, i);
           const cls = [this.zoneActions.has(k) ? 'hl' : '', this.flashes.has(k) ? 'flash' : ''].join(' ');
-          return miniCard(c.code, { cls, data: `data-z="${k}"` });
+          return miniCard(c.code, { cls, data: `data-z="${k}"`, back: this.backOf(me) });
         })
         .join('')}</div>
       ${this.barHtml()}`;
@@ -828,7 +830,7 @@ export class DuelClient {
     if (this.places.some((x) => key(x.player, x.location, x.sequence) === k)) cls.push('picked');
     if (this.flashes.has(k)) cls.push('flash');
     if (v.chain.some((ch) => ch.controller === p && (ch.location === loc || (ch.location === 256 && seq === 5)) && ch.sequence === (ch.location === 256 ? 0 : seq))) cls.push('chained');
-    const inner = c ? miniCard(c.code, { position: c.position, attack: c.attack, defense: c.defense, monster: loc === 4 }) : seq === 5 ? '<span class="zl">FIELD</span>' : '';
+    const inner = c ? miniCard(c.code, { position: c.position, attack: c.attack, defense: c.defense, monster: loc === 4, back: this.backOf(p) }) : seq === 5 ? '<span class="zl">FIELD</span>' : '';
     const ctr = c?.counters ? `<span class="ctr">${Object.values(c.counters).reduce((a, b) => a + b, 0)}</span>` : '';
     return `<div class="${cls.join(' ')}" data-z="${k}">${inner}${ctr}</div>`;
   }
@@ -838,8 +840,8 @@ export class DuelClient {
     const label = loc === 1 ? 'DECK' : loc === 16 ? 'GY' : 'EXTRA';
     const count = loc === 1 ? pl.deckCount : loc === 16 ? pl.grave.length : pl.extraCount;
     let top = '';
-    if (loc === 1 && count) top = miniCard(0);
-    if (loc === 64 && count) top = miniCard(0);
+    if (loc === 1 && count) top = miniCard(0, { back: this.backOf(p) });
+    if (loc === 64 && count) top = miniCard(0, { back: this.backOf(p) });
     if (loc === 16 && count) top = miniCard(pl.grave[pl.grave.length - 1].code);
     const k = `${p}:${loc}`;
     const hl = [...this.zoneActions.keys()].some((z) => z.startsWith(`${p}:${loc}:`)) ? 'hl' : '';
@@ -915,13 +917,25 @@ export class DuelClient {
     return `${who} · ${where}`;
   }
 
+  /**
+   * Color del dorso de las cartas de un jugador: en el mismo móvil, Player 1 azul y Player 2 rojo;
+   * online, las tuyas azules y las del rival rojas.
+   */
+  private backOf(p: number): 'blue' | 'red' {
+    const me = this.u?.view.you ?? 0;
+    if (!this.opts.hotseat) return p === me ? 'blue' : 'red';
+    // El equipo 0 del motor es quien empieza; el color va por asiento (Player 1 / Player 2).
+    const seat = p === me ? (this.opts.seat ?? 0) : 1 - (this.opts.seat ?? 0);
+    return seat === 0 ? 'blue' : 'red';
+  }
+
   /** Lista de cartas seleccionables (con su sitio). */
   private cardGrid(list: { code: number; controller: number; location: number; sequence: number; position?: number }[], isPicked: (i: number) => boolean, onTap: (i: number) => void, extra?: (i: number) => string): string {
     return `<div class="grid">${list
       .map((c, i) => {
         const onField = c.location === 4 || c.location === 8;
         const pos = onField ? (c.position ?? this.cardAt(this.u!.view, key(c.controller, c.location, c.sequence))?.position) : undefined;
-        return `<button class="gi ${isPicked(i) ? 'picked' : ''}" ${this.h(() => onTap(i))}>${miniCard(c.code, { position: pos && (pos & 0xa) && c.code ? 8 : 1 })}<span class="gl">${esc(c.code ? cardName(c.code) : 'Face-down')}</span><span class="gs">${esc(this.locLabel(c))}</span>${extra ? extra(i) : ''}</button>`;
+        return `<button class="gi ${isPicked(i) ? 'picked' : ''}" ${this.h(() => onTap(i))}>${miniCard(c.code, { position: pos && (pos & 0xa) && c.code ? 8 : 1, back: this.backOf(c.controller) })}<span class="gl">${esc(c.code ? cardName(c.code) : 'Face-down')}</span><span class="gs">${esc(this.locLabel(c))}</span>${extra ? extra(i) : ''}</button>`;
       })
       .join('')}</div>`;
   }
@@ -1094,7 +1108,7 @@ export class DuelClient {
           .reverse()
           .map(({ c, i }) => {
             const k = key(pp, loc, i);
-            return miniCard(c.code, { cls: this.zoneActions.has(k) ? 'hl' : '', data: `data-z="${k}"`, position: (c.position & 0xa) && c.code ? 8 : 1 });
+            return miniCard(c.code, { cls: this.zoneActions.has(k) ? 'hl' : '', data: `data-z="${k}"`, position: (c.position & 0xa) && c.code ? 8 : 1, back: this.backOf(pp) });
           })
           .join('');
         const note = loc === 1 ? '<p class="muted">The Deck is face-down.</p>' : loc === 64 && pp !== v.you ? `<p class="muted">You can't see your opponent's Extra Deck.</p>` : !list.length ? '<p class="muted">Empty.</p>' : '';

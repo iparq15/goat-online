@@ -299,6 +299,7 @@ async function startPractice(names: [string, string], decks: [Deck, Deck], curta
       new DuelClient(seatEls[seat], { send: (m) => link[seat].send(m) }, {
         names: [names[seat], names[1 - seat]],
         hotseat: true,
+        seat,
         onExit: exit,
         onChange,
       }),
