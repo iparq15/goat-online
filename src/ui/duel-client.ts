@@ -768,6 +768,14 @@ export class DuelClient {
     const op = (1 - me) as 0 | 1;
     const cols = [0, 1, 2, 3, 4];
     const rev = [4, 3, 2, 1, 0];
+    // Online, el rival se ve en espejo (como al otro lado de la mesa). En el mismo móvil la pantalla
+    // cambia de jugador a menudo: sin espejo, cada carta queda en la misma columna en las dos vistas
+    // y no parece que se mueva al girar.
+    const oppRows = this.opts.hotseat
+      ? `<div class="row">${this.pileCell(op, 64)}${cols.map((i) => this.zoneCell(op, 8, i)).join('')}${this.pileCell(op, 1)}</div>
+        <div class="row">${this.zoneCell(op, 8, 5)}${cols.map((i) => this.zoneCell(op, 4, i)).join('')}${this.pileCell(op, 16)}</div>`
+      : `<div class="row">${this.pileCell(op, 1)}${rev.map((i) => this.zoneCell(op, 8, i)).join('')}${this.pileCell(op, 64)}</div>
+        <div class="row">${this.pileCell(op, 16)}${rev.map((i) => this.zoneCell(op, 4, i)).join('')}${this.zoneCell(op, 8, 5)}</div>`;
     const phase = phaseKey(v.phase);
     const phases = PHASES.map(([id, short]) => `<span class="${id === phase ? 'on' : ''}">${short}</span>`).join('');
     const turnOwner = v.turnPlayer === me ? 'mine' : 'theirs';
@@ -779,8 +787,7 @@ export class DuelClient {
       ${this.playerBar(op, 'opp')}
       ${this.netText() ? `<div class="netbanner">${esc(this.netText())}</div>` : ''}
       <div class="field ${turnOwner}">
-        <div class="row">${this.pileCell(op, 1)}${rev.map((i) => this.zoneCell(op, 8, i)).join('')}${this.pileCell(op, 64)}</div>
-        <div class="row">${this.pileCell(op, 16)}${rev.map((i) => this.zoneCell(op, 4, i)).join('')}${this.zoneCell(op, 8, 5)}</div>
+        ${oppRows}
         <div class="mid">
           <div class="phases">${phases}</div>
           ${chain}

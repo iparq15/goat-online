@@ -1,59 +1,79 @@
-// Genera los iconos PNG de la app (sin dependencias) a partir de un dibujo pixel de 16x16:
-// una carta con el dorso propio de la app (rombo ámbar) sobre fondo añil.
+// Genera los iconos PNG de la app (sin dependencias): los dos dorsos de las cartas de la app,
+// azul y rojo, uno al lado del otro (rectángulo de color con óvalo y contorno negros) sobre el
+// fondo añil. Se dibuja con geometría y suavizado, así queda nítido en cualquier tamaño.
 //   node scripts/gen-icons.mjs
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { deflateSync } from 'node:zlib';
 
-const PALETTE = {
-  '.': [0x1a, 0x12, 0x33],
-  k: [0x0f, 0x0a, 0x22],
-  c: [0xf6, 0xec, 0xd2],
-  q: [0x2a, 0x1d, 0x5c],
-  p: [0x4a, 0x38, 0x96],
-  a: [0xff, 0xb4, 0x3b],
-  d: [0xd9, 0x82, 0x2b],
-  y: [0xff, 0xe0, 0x8a],
-};
+const BG = [0x1a, 0x12, 0x33];
+const BLACK = [0x0b, 0x0b, 0x10];
+const BLUE = [0x2f, 0x6f, 0xe0];
+const RED = [0xd6, 0x3a, 0x3a];
+const SHADOW = [0x0d, 0x08, 0x1e];
 
-// prettier-ignore
-const ART = [
-  '................',
-  '....cccccccc....',
-  '....cqpqqpqck...',
-  '....cpqqqqpck...',
-  '....cqqddqqck...',
-  '....cqdaadqck...',
-  '....cdayyadck...',
-  '....cdayyadck...',
-  '....cqdaadqck...',
-  '....cqqddqqck...',
-  '....cpqqqqpck...',
-  '....cqpqqpqck...',
-  '....cccccccck...',
-  '.....kkkkkkkk...',
-  '................',
-  '................',
+/** Dos cartas en coordenadas 0..1: ancho 0.34, alto 0.48 (proporción de carta). */
+const CARD_W = 0.34;
+const CARD_H = 0.48;
+const CARDS = [
+  { x: 0.14, y: 0.25, color: BLUE },
+  { x: 0.52, y: 0.27, color: RED },
 ];
 
-/** Color en coordenadas del dibujo (0..16), con margen extra `pad` (en píxeles del dibujo). */
-function colorAt(u, v, pad) {
-  const n = 16 + pad * 2;
-  const x = Math.floor(u * n) - pad;
-  // Centra verticalmente la carta (ocupa las filas 1..13).
-  const y = Math.floor(v * n) - pad + 0;
-  if (x < 0 || y < 0 || x >= 16 || y >= 16) return PALETTE['.'];
-  return PALETTE[ART[y][x]] ?? PALETTE['.'];
+function mix(a, b, t) {
+  return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
 }
 
-function render(size, pad = 0) {
+/** Color en un punto (u, v) del icono. `k` encoge el dibujo (margen de los iconos "maskable"). */
+function colorAt(u, v, k) {
+  const x = (u - 0.5) / k + 0.5;
+  const y = (v - 0.5) / k + 0.5;
+  const line = 0.022;
+  let c = BG;
+  // Sombra dura de cada carta.
+  for (const card of CARDS) {
+    if (x >= card.x + 0.025 && x <= card.x + CARD_W + 0.025 && y >= card.y + 0.025 && y <= card.y + CARD_H + 0.025) c = SHADOW;
+  }
+  for (const card of CARDS) {
+    if (x < card.x || x > card.x + CARD_W || y < card.y || y > card.y + CARD_H) continue;
+    // Contorno negro.
+    if (x < card.x + line || x > card.x + CARD_W - line || y < card.y + line || y > card.y + CARD_H - line) {
+      c = BLACK;
+      continue;
+    }
+    // Óvalo negro en el centro (30% del ancho y del alto, como en la app).
+    const ox = (x - (card.x + CARD_W / 2)) / (CARD_W * 0.3);
+    const oy = (y - (card.y + CARD_H / 2)) / (CARD_H * 0.3);
+    if (ox * ox + oy * oy <= 1) {
+      c = BLACK;
+      continue;
+    }
+    // Relleno con un brillo diagonal suave.
+    const t = ((x - card.x) / CARD_W + (y - card.y) / CARD_H) / 2;
+    c = t < 0.5 ? mix(card.color, [255, 255, 255], (0.5 - t) * 0.35) : mix(card.color, [0, 0, 0], (t - 0.5) * 0.35);
+  }
+  return c;
+}
+
+function render(size, k = 1) {
   const row = size * 3 + 1;
   const raw = Buffer.alloc(size * row);
+  const S = 4; // 4x4 muestras por píxel
   for (let y = 0; y < size; y++) {
     raw[y * row] = 0;
     for (let x = 0; x < size; x++) {
-      // La carta (columnas 4..11, filas 1..12) queda centrada bajando el dibujo ~1 píxel.
-      const c = colorAt((x + 0.5) / size, (y + 0.5) / size - 0.9 / (16 + pad * 2), pad);
-      raw.set(c, y * row + 1 + x * 3);
+      let r = 0;
+      let g = 0;
+      let b = 0;
+      for (let sy = 0; sy < S; sy++) {
+        for (let sx = 0; sx < S; sx++) {
+          const c = colorAt((x + (sx + 0.5) / S) / size, (y + (sy + 0.5) / S) / size, k);
+          r += c[0];
+          g += c[1];
+          b += c[2];
+        }
+      }
+      const n = S * S;
+      raw.set([Math.round(r / n), Math.round(g / n), Math.round(b / n)], y * row + 1 + x * 3);
     }
   }
   return png(size, raw);
@@ -90,6 +110,6 @@ writeFileSync('public/icons/apple-touch-icon.png', render(180));
 writeFileSync('public/icons/icon-192.png', render(192));
 writeFileSync('public/icons/icon-512.png', render(512));
 // "maskable": con margen para que Android pueda recortarlo en círculo.
-writeFileSync('public/icons/icon-maskable-512.png', render(512, 3));
+writeFileSync('public/icons/icon-maskable-512.png', render(512, 0.8));
 writeFileSync('public/favicon.png', render(64));
 console.log('Iconos generados en public/icons/');
