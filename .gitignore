@@ -4,3 +4,6 @@ dist/
 *.log
 data/
 server/.dev.vars
+# Packs de ilustraciones de uso personal: nunca en el repo.
+*.zip
+goat-card-pack/

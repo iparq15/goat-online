@@ -22,9 +22,14 @@ público de salas. Tema visual **original** con aire retro de portátil de los 2
 - Lobby: Cloudflare Workers + Durable Objects (reutilizando la idea de gba-link-online).
 
 ## Reglas
-- **Sin ilustraciones de cartas.** Las cartas se muestran con un marco pixel art
-  original: nombre, tipo, atributo, nivel, ATK/DEF y texto. No incluir, descargar ni
-  enlazar arte de Konami.
+- **Sin ilustraciones de cartas en el repo ni en el deploy.** Las cartas se muestran con un
+  marco pixel art original e iconos propios. No incluir, descargar ni enlazar arte de Konami.
+  Excepción de uso personal (decisión del usuario): el usuario puede importar en su
+  dispositivo un pack de ilustraciones generado en local con `scripts/make-pic-pack.py`
+  desde SU instalación de Project Ignis. El pack se escribe FUERA del proyecto (por defecto
+  `OneDrive/Documentos/goat-card-pack/`), se guarda solo en IndexedDB del dispositivo y
+  nunca se copia al repo, a `public/`, al build ni al deploy. Si la app se publica para más
+  gente, revisar esto.
 - **No imitar el aspecto de ningún juego existente** (en particular los juegos de GBA de
   Konami): interfaz, tablero, sprites, sonidos y tipografía son diseño propio o de
   licencia libre (indicar la licencia de cada asset de terceros).

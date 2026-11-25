@@ -10,6 +10,7 @@ import './style.css';
 import { validateDeck, type Deck } from '../engine/ydk.ts';
 import { loadAssets, type Assets } from './assets.ts';
 import { loadNameFont } from './card-view.ts';
+import { clearPics, importPics, loadPics, picCount } from './card-pics.ts';
 import { showDeckList } from './deck-editor.ts';
 import { listDecks, migrateLegacy } from './deck-store.ts';
 import { DuelClient } from './duel-client.ts';
@@ -78,11 +79,12 @@ async function boot(): Promise<void> {
   app.innerHTML = `<div class="screen center"><div class="logo">GOAT<br><span>ONLINE</span></div><div class="loadbar"><i id="lb"></i></div><p class="muted">Loading cards…</p></div>`;
   try {
     const font = loadNameFont();
+    const pics = loadPics();
     assets = await loadAssets((done, total) => {
       const lb = document.getElementById('lb');
       if (lb) lb.style.width = `${(done / total) * 100}%`;
     });
-    await font;
+    await Promise.all([font, pics]);
     initText(assets.data, assets.strings);
     await migrateLegacy();
     // Enlace de invitación: ?room=CODE abre el lobby con el código puesto.
@@ -146,9 +148,44 @@ function settingsScreen(): void {
     <label class="check"><input type="checkbox" id="s-zone" ${s.autoZone ? 'checked' : ''}> Choose zones automatically when summoning or setting</label>
     <label class="check"><input type="checkbox" id="s-chain" ${s.chains === 'always' ? 'checked' : ''}> Always ask to chain (otherwise only when something happens, and in your opponent's Battle and End Phase)</label>
     <label>Animations <select id="s-anim">${(['normal', 'fast', 'off'] as const).map((a) => `<option value="${a}" ${s.anim === a ? 'selected' : ''}>${a[0].toUpperCase() + a.slice(1)}</option>`).join('')}</select></label>
+    <fieldset>
+      <legend>Card pictures</legend>
+      <p class="small" id="pic-status"></p>
+      <div class="mbtns">
+        <label class="btn">Import pictures (.zip)<input type="file" id="pic-in" accept=".zip,application/zip" hidden></label>
+        <button class="btn danger" id="pic-clear">Remove</button>
+      </div>
+      <p class="muted small">Your own pictures (one image per card, named by card code). They stay on this device only; cards without a picture keep their pixel icon.</p>
+    </fieldset>
     <div class="mbtns col"><button class="btn go" id="s-back">Done</button></div>
     <p class="muted small">Settings are saved on this device.</p>
   </div>`;
+  const status = document.getElementById('pic-status')!;
+  const showCount = (): void => {
+    const n = picCount();
+    status.textContent = n ? `${n} card pictures on this device.` : 'No card pictures yet: cards show pixel icons.';
+    (document.getElementById('pic-clear') as HTMLButtonElement).hidden = n === 0;
+  };
+  showCount();
+  const picIn = document.getElementById('pic-in') as HTMLInputElement;
+  picIn.onchange = async () => {
+    const f = picIn.files?.[0];
+    picIn.value = '';
+    if (!f) return;
+    try {
+      status.textContent = 'Reading the .zip…';
+      const n = await importPics(f, (d, t) => (status.textContent = `Saving pictures… ${d}/${t}`));
+      showCount();
+      status.textContent += ` (${n} imported)`;
+    } catch (e) {
+      status.textContent = e instanceof Error ? e.message : String(e);
+    }
+  };
+  document.getElementById('pic-clear')!.onclick = async () => {
+    if (!confirm('Remove all card pictures from this device?')) return;
+    await clearPics();
+    showCount();
+  };
   const $ = (id: string) => document.getElementById(id) as HTMLInputElement;
   $('s-back').onclick = () => {
     updateSettings({ sound: $('s-sound').checked, autoZone: $('s-zone').checked, chains: $('s-chain').checked ? 'always' : 'smart', anim: ($('s-anim') as unknown as HTMLSelectElement).value as 'normal' | 'fast' | 'off' });

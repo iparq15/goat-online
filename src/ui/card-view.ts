@@ -6,6 +6,7 @@ import { TYPE, type CardInfo } from '../engine/data.ts';
 import { SPRITES } from './sprites.ts';
 import { CARD_SPRITES } from './card-sprites.ts';
 import { motifSprite } from './card-motifs.ts';
+import { picUrl } from './card-pics.ts';
 import { ATTRIBUTE_SHORT, card, cardName, esc, spellIcon, typeLine, attributeName, POSITION_NAME } from './text.ts';
 
 
@@ -78,6 +79,8 @@ function spriteFor(c: CardInfo | undefined): string {
  * atributo, sobre un emblema tenue generado a partir del código (distinto en cada carta).
  */
 export function sigilUrl(code: number): string {
+  const pic = picUrl(card(code)?.alias || code);
+  if (pic) return pic;
   const cached = sigils.get(code);
   if (cached) return cached;
   const c = card(code);
@@ -123,6 +126,9 @@ export function sigilUrl(code: number): string {
   sigils.set(code, url);
   return url;
 }
+
+/** ' pic' si la carta usa una ilustración importada (llena el recuadro). */
+const picClass = (code: number): string => (picUrl(card(code)?.alias || code) ? ' pic' : '');
 
 let backCache = '';
 
@@ -192,7 +198,7 @@ export function miniCard(code: number, o: MiniOpts = {}): string {
   } else if (c) {
     bottom = `<div class="cs st">${c.type & TYPE.SPELL ? 'SPELL' : 'TRAP'} ${spellIcon(c.type)}</div>`;
   }
-  return `<div class="${cls.join(' ')}" ${data}><div class="cn ${nameFit(cardName(code))}">${esc(cardName(code))}</div><div class="ca" style="--img:url(${sigilUrl(code)})">${badge}</div>${bottom}</div>`;
+  return `<div class="${cls.join(' ')}" ${data}><div class="cn ${nameFit(cardName(code))}">${esc(cardName(code))}</div><div class="ca${picClass(code)}" style="--img:url(${sigilUrl(code)})">${badge}</div>${bottom}</div>`;
 }
 
 const fmtStat = (n: number) => (n < 0 ? '?' : String(n));
@@ -206,7 +212,7 @@ export function bigCard(code: number, position?: number): string {
   if (c && c.type & TYPE.MONSTER && c.level) stars = `<div class="stars">${'★'.repeat(Math.min(12, c.level))}</div>`;
   const attr = c && c.type & TYPE.MONSTER ? `<span class="attr a${c.attribute}">${ATTRIBUTE_SHORT[c.attribute] ?? ''}</span>` : '';
   const pos = position !== undefined && POSITION_NAME[position] ? `<div class="bpos">${POSITION_NAME[position]}</div>` : '';
-  return `<div class="bigcard k-${kind}"><div class="cn">${esc(cardName(code))}</div>${stars}<div class="ca" style="--img:url(${sigilUrl(code)})">${attr}</div>${pos}</div>`;
+  return `<div class="bigcard k-${kind}"><div class="cn">${esc(cardName(code))}</div>${stars}<div class="ca${picClass(code)}" style="--img:url(${sigilUrl(code)})">${attr}</div>${pos}</div>`;
 }
 
 /** Ficha de texto de la carta (para el panel de detalle). */

@@ -139,6 +139,18 @@ Con `server/.dev.vars` = `DEBUG=1`, la derrota por desconexión es a los 6 s par
   invocación normal/especial/volteo, colocar, robar, barajar, daño (sacudida y LP que bajan),
   negación y cambio de turno. Velocidad normal/rápida/sin animaciones en Settings.
 
+## Ilustraciones de uso personal
+
+La app no incluye ninguna ilustración. Para verlas en tu dispositivo:
+
+1. En el PC con EDOPro (Project Ignis): `python scripts/make-pic-pack.py`. Recorta la ilustración de
+   las imágenes que EDOPro ya descargó en `pics/`, la deja en 48x48 con paleta corta (aspecto
+   pixel) y crea `OneDrive/Documentos/goat-card-pack/goat-pics.zip` (~2.4 MB, fuera del repo).
+   Las cartas que EDOPro aún no descargó siguen con su icono; ábrelas en EDOPro y repite.
+2. En el iPhone: guarda el .zip en Archivos (p. ej. desde OneDrive) y en la app
+   **Settings → Card pictures → Import pictures (.zip)**. Se guardan solo en ese dispositivo
+   (IndexedDB) y se pueden quitar con **Remove**.
+
 ## Licencias
 
 - Este proyecto: **AGPL-3.0-or-later** ([LICENSE](LICENSE)).

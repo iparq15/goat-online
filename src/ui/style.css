@@ -1607,3 +1607,63 @@ button,
 .fx-grave.theirs .fx-label {
   color: var(--opp);
 }
+
+/* ---------- Estilo de cartas "portátil de los 2000" (diseño propio) ----------
+   Marco biselado con degradado, sombra dura, recuadro del dibujo hundido. Mismas medidas que
+   antes (no cambia el reparto de nombres de nameFit). */
+.card:not(.k-back) {
+  background:
+    linear-gradient(135deg, #ffffff3a 0%, #ffffff00 38%, #00000000 62%, #00000033 100%),
+    var(--frame, #888);
+  box-shadow:
+    inset 1px 1px 0 #ffffffaa,
+    inset -1px -1px 0 #00000066,
+    inset 0 0 0 2px var(--frame-d, #333),
+    2px 2px 0 #0a061899;
+}
+.card .cn {
+  background: linear-gradient(#fffffff0, #ffffffb8);
+  box-shadow: inset 0 -1px 0 #00000022;
+}
+.card .ca,
+.bigcard .ca {
+  box-shadow:
+    inset 1px 1px 0 #00000099,
+    inset -1px -1px 0 #ffffff55,
+    0 0 0 1px var(--frame-d);
+}
+.bigcard:not(.k-back) {
+  background:
+    linear-gradient(135deg, #ffffff40 0%, #ffffff00 38%, #00000000 62%, #00000038 100%),
+    var(--frame);
+  box-shadow:
+    inset 2px 2px 0 #ffffffaa,
+    inset -2px -2px 0 #00000066,
+    inset 0 0 0 4px var(--frame-d),
+    0 0 0 2px var(--dark),
+    4px 4px 0 #0a061899;
+}
+.bigcard .cn {
+  background: linear-gradient(#fffffff0, #ffffffb8);
+}
+/* Paleta de marcos más viva (aire de pantalla de 15 bits). */
+.k-normal { --frame: #e8c463; --frame-d: #6e5014; }
+.k-effect { --frame: #e8823c; --frame-d: #6e300c; }
+.k-fusion { --frame: #a072dc; --frame-d: #3f1f6a; }
+.k-ritual { --frame: #5b8ff0; --frame-d: #1f3a78; }
+.k-spell { --frame: #34c29a; --frame-d: #0e5140; }
+.k-trap { --frame: #d8559f; --frame-d: #5a1442; }
+
+/* Ilustraciones importadas: llenan el recuadro, pixeladas. */
+.card .ca.pic,
+.bigcard .ca.pic {
+  background: var(--img) center / cover no-repeat, var(--dark);
+  image-rendering: pixelated;
+}
+/* La carta en defensa o en el campo no lleva sombra exterior (se solaparía con la zona). */
+.zone > .card:not(.k-back) {
+  box-shadow:
+    inset 1px 1px 0 #ffffffaa,
+    inset -1px -1px 0 #00000066,
+    inset 0 0 0 2px var(--frame-d, #333);
+}
