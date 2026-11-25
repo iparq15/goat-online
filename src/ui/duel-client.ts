@@ -555,6 +555,7 @@ export class DuelClient {
         break;
       case T.PAY_LPCOST:
         this.log(`${this.nameOf(ev.player)} pays ${ev.amount} LP.`);
+        this.sfx('damage');
         this.lpFx.push({ player: ev.player, text: `-${ev.amount}`, cls: 'dmg' });
         break;
       case T.RECOVER:

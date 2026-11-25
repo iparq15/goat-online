@@ -163,14 +163,14 @@ function settingsScreen(): void {
       <p class="muted small">Your own pictures (one image per card, named by card code). They stay on this device only; cards without a picture keep their pixel icon.</p>
     </fieldset>
     <fieldset>
-      <legend>LP calculator sound</legend>
+      <legend>Life Points sound</legend>
       <p class="small" id="snd-status"></p>
       <div class="mbtns">
         <label class="btn">Import sound<input type="file" id="snd-in" accept="audio/*,.mp3,.m4a,.wav" hidden></label>
         <button class="btn" id="snd-test">Test</button>
         <button class="btn danger" id="snd-clear">Remove</button>
       </div>
-      <p class="muted small">Your own audio file, played when you press = in the LP calculator. It stays on this device only.</p>
+      <p class="muted small">Your own audio file, played when you press = in the LP calculator and when a player loses LP in a duel. It stays on this device only.</p>
     </fieldset>
     <div class="mbtns col"><button class="btn go" id="s-back">Done</button></div>
     <p class="muted small">Settings are saved on this device.</p>

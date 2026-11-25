@@ -1,14 +1,12 @@
 // Duelos entre los mazos de inicio de la app (bots): comprueba que sus cartas funcionan.
-//   node test/headless-duel.ts [número de duelos] [carpeta de mazos]
+//   node test/starters-duel.ts [número de duelos]
 // Comprueba que el motor, las cartas y los scripts del pool funcionan y que el duelo es
 // reproducible (mismo seed + mismas respuestas = mismo resultado).
 
-import { readFileSync, readdirSync } from 'node:fs';
-import { join } from 'node:path';
+import { readFileSync } from 'node:fs';
 import createCore, { OcgMessageType, type OcgMessage } from 'ocgcore-wasm';
 import { parseGoatData, type RawGoatData } from '../src/engine/data.ts';
 import { GoatDuel } from '../src/engine/duel.ts';
-import { parseYdk, validateDeck, type Deck } from '../src/engine/ydk.ts';
 import { botRespond, mulberry32, type BotState } from './bot.ts';
 
 const DUELS = Number(process.argv[2] ?? 20);

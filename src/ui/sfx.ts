@@ -2,6 +2,7 @@
 // En iOS el audio solo puede empezar tras un toque: se desbloquea en el primer toque y se
 // suspende cuando la app pasa a segundo plano.
 
+import { playCustomSound } from './custom-sound.ts';
 import { settings } from './settings.ts';
 
 export type Sfx = 'tap' | 'draw' | 'summon' | 'set' | 'activate' | 'attack' | 'damage' | 'heal' | 'turn' | 'decide' | 'win' | 'lose' | 'grave';
@@ -58,6 +59,8 @@ const TUNES: Record<Sfx, [number, number][]> = {
 
 export function play(name: Sfx): void {
   if (!settings().sound) return;
+  // Perder LP (daño o pago de LP): el sonido propio importado en Settings, si lo hay.
+  if (name === 'damage' && playCustomSound()) return;
   const a = ctx;
   if (!a || a.state !== 'running') return;
   let t = a.currentTime + 0.01;

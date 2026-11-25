@@ -310,6 +310,79 @@ ${STAPLE_TRAPS}
 1 Ceasefire
 1 Solemn Judgment
 1 Last Turn`, CONTROL_EXTRA],
+  ['Blue-Eyes', `
+3 Blue-Eyes White Dragon
+2 Paladin of White Dragon
+2 Lord of D.
+1 Manju of the Ten Thousand Hands
+1 Sonic Bird
+1 Kaibaman
+1 Sangan
+1 Breaker the Magical Warrior
+1 Tribe-Infecting Virus
+1 Jinzo
+1 Sinister Serpent
+2 White Dragon Ritual
+2 The Flute of Summoning Dragon
+${STAPLE_SPELLS}
+2 Nobleman of Crossout
+1 Swords of Revealing Light
+1 Book of Moon
+${STAPLE_TRAPS}
+2 Sakuretsu Armor
+1 Dust Tornado
+1 Ceasefire
+1 Bottomless Trap Hole
+1 Solemn Judgment`, AGGRO_EXTRA],
+  ['Dark Paladin', `
+3 Dark Magician
+2 Buster Blader
+1 Skilled Dark Magician
+2 Magician of Faith
+1 Dark Magician Girl
+1 Sangan
+1 Breaker the Magical Warrior
+1 Tribe-Infecting Virus
+1 Jinzo
+1 Sinister Serpent
+1 D.D. Warrior Lady
+2 Fusion Gate
+2 Dimension Fusion
+1 Polymerization
+1 Thousand Knives
+1 Dark Magic Attack
+${STAPLE_SPELLS}
+1 Nobleman of Crossout
+1 Swords of Revealing Light
+${STAPLE_TRAPS}
+2 Sakuretsu Armor
+1 Dust Tornado
+1 Ceasefire
+1 Return from the Different Dimension`, `3 Dark Paladin
+${AGGRO_EXTRA}`],
+  ['Zombies', `
+3 Pyramid Turtle
+2 Vampire Lord
+2 Ryu Kokki
+2 Spirit Reaper
+1 Vampire Lady
+1 Patrician of Darkness
+1 Master Kyonshee
+1 Double Coston
+1 Sangan
+1 Tribe-Infecting Virus
+2 Book of Life
+1 Call of the Mummy
+${STAPLE_SPELLS}
+2 Nobleman of Crossout
+1 Smashing Ground
+1 Swords of Revealing Light
+${STAPLE_TRAPS}
+2 Sakuretsu Armor
+1 Dust Tornado
+2 Bottomless Trap Hole
+1 Ceasefire
+1 Magic Cylinder`, AGGRO_EXTRA],
 ];
 
 const raw: RawGoatData = {
