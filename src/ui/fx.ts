@@ -357,16 +357,80 @@ export class Fx {
     await Promise.all(effects);
   }
 
-  /** Cartas robadas: vuelan del mazo a la mano. */
-  async draw(cards: HTMLElement[], deck: HTMLElement | null): Promise<void> {
-    if (!deck || !cards.length) return;
+  /** Copia flotante de una carta (o de su reverso) del tamaño de `size`, colocada en `at`. */
+  private drawGhost(html: string, at: Box, size: Box): HTMLElement {
+    const g = document.createElement('div');
+    g.className = 'fx-draw';
+    g.style.setProperty('--dw', `${size.w}px`);
+    g.style.setProperty('--dh', `${size.h}px`);
+    g.innerHTML = html;
+    return this.place(g, { x: at.x + (at.w - size.w) / 2, y: at.y + (at.h - size.h) / 2, w: size.w, h: size.h });
+  }
+
+  /**
+   * Robo propio: cada carta sale del mazo boca abajo, sube al centro, se voltea para mostrarse
+   * un momento y baja a su hueco de la mano.
+   */
+  async draw(cards: HTMLElement[], deck: HTMLElement | null, backHtml: string): Promise<void> {
+    if (!deck || !cards.length || this.ms(100) <= 0) return;
     const d = this.box(deck);
+    const root = this.box(this.root);
+    for (const c of cards) c.style.visibility = 'hidden';
+    const n = cards.length;
     await Promise.all(
-      cards.map((c, i) => {
-        const b = this.box(c);
-        const dx = d.x - b.x;
-        const dy = d.y - b.y;
-        return this.run(c, [{ transform: `translate(${dx}px,${dy}px) scale(0.8)`, opacity: 0.4 }, { transform: 'translate(0,0) scale(1)', opacity: 1 }], 380, { delay: this.ms(i * 90), fill: 'backwards', easing: 'ease-out' });
+      cards.map(async (c, i) => {
+        try {
+          await this.wait(i * 170);
+          const b = this.box(c);
+          const g = this.drawGhost(backHtml, d, b);
+          const g0 = this.box(g);
+          const s = n > 3 ? 1.25 : 1.6;
+          const spread = Math.min(b.w * s + 10, (root.w - 24) / n);
+          const cx = root.w / 2 - b.w / 2 + (i - (n - 1) / 2) * spread - g0.x;
+          const cy = root.h * 0.52 - b.h / 2 - g0.y;
+          const at = (x: number, y: number, sx: number, sy = sx) => `translate(${x}px,${y}px) scale(${sx},${sy})`;
+          // Sale del mazo.
+          await this.run(g, [{ transform: at(0, 0, 1) }, { transform: at(0, -16, 1.12) }], 130, { easing: 'ease-out' });
+          // Al centro, más grande.
+          await this.run(g, [{ transform: at(0, -16, 1.12) }, { transform: at(cx, cy, s) }], 260, { easing: 'ease-out' });
+          // Se voltea.
+          await this.run(g, [{ transform: at(cx, cy, s) }, { transform: at(cx, cy, 0, s) }], 90, { easing: 'ease-in' });
+          const face = c.cloneNode(true) as HTMLElement;
+          face.removeAttribute('data-z');
+          face.removeAttribute('data-h');
+          face.className = face.className.replace(/\b(hl|flash|tg\S*)\b/g, '');
+          face.style.visibility = '';
+          g.replaceChildren(face);
+          await this.run(g, [{ transform: at(cx, cy, 0, s) }, { transform: at(cx, cy, s) }], 90, { easing: 'ease-out' });
+          await this.wait(380);
+          // A la mano.
+          const dx = b.x - g0.x;
+          const dy = b.y - g0.y;
+          await this.run(g, [{ transform: at(cx, cy, s) }, { transform: at(dx, dy, 1) }], 260, { easing: 'ease-in' });
+          g.remove();
+        } finally {
+          c.style.visibility = '';
+        }
+      }),
+    );
+  }
+
+  /** Robo del rival: reversos que salen de su mazo y vuelan a su mano. */
+  async drawTheirs(count: number, deck: HTMLElement | null, hand: HTMLElement | null, backHtml: string): Promise<void> {
+    if (!deck || !count || this.ms(100) <= 0) return;
+    const d = this.box(deck);
+    const t = hand ? this.box(hand) : { x: d.x, y: 0, w: d.w, h: 0 };
+    await Promise.all(
+      Array.from({ length: count }, async (_, i) => {
+        await this.wait(i * 150);
+        const g = this.drawGhost(backHtml, d, { x: 0, y: 0, w: d.w * 0.8, h: d.h * 0.8 });
+        const g0 = this.box(g);
+        const dx = t.x + t.w / 2 - (g0.x + g0.w / 2);
+        const dy = t.y + t.h / 2 - (g0.y + g0.h / 2);
+        await this.run(g, [{ transform: 'translate(0,0) scale(1)' }, { transform: 'translate(0,12px) scale(1.12)', offset: 0.25 }, { transform: `translate(${dx}px,${dy}px) scale(0.35)`, opacity: 0.4 }], 520, {
+          easing: 'ease-in',
+        });
+        g.remove();
       }),
     );
   }

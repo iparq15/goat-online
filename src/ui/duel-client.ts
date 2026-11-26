@@ -325,6 +325,7 @@ export class DuelClient {
     const me = m.view.you;
     const all: Promise<void>[] = [];
     let drawn = 0;
+    let oppDrawn = 0;
     for (const ev of m.events) {
       if (ev.type === T.SUMMONING || ev.type === T.SPSUMMONING || ev.type === T.FLIPSUMMONING || ev.type === T.SET) {
         if (ev.type === T.SET && ev.location !== 4 && ev.location !== 8) continue;
@@ -332,11 +333,19 @@ export class DuelClient {
         if (!z) continue;
         const kind = ev.type === T.SUMMONING ? 'summon' : ev.type === T.SPSUMMONING ? 'special' : ev.type === T.FLIPSUMMONING ? 'flip' : 'set';
         all.push(this.fx.appear(z, kind));
-      } else if (ev.type === T.DRAW && ev.player === me) drawn += ev.drawn.length;
+      } else if (ev.type === T.DRAW) {
+        if (ev.player === me) drawn += ev.drawn.length;
+        else oppDrawn += ev.drawn.length;
+      }
     }
     if (drawn) {
       const hand = [...this.el.querySelectorAll<HTMLElement>('.hand .card')];
-      all.push(this.fx.draw(hand.slice(-drawn), this.fx.pile(`${me}:1`)));
+      all.push(this.fx.draw(hand.slice(-drawn), this.fx.pile(`${me}:1`), miniCard(0, { back: this.backOf(me) })));
+    }
+    if (oppDrawn) {
+      const op = (1 - me) as 0 | 1;
+      const chip = this.el.querySelector<HTMLElement>('.pbar.opp .chip[title="Hand"]');
+      all.push(this.fx.drawTheirs(oppDrawn, this.fx.pile(`${op}:1`), chip, miniCard(0, { back: this.backOf(op) })));
     }
     // LP que cambian: el número baja o sube poco a poco.
     for (const p of [0, 1] as const) {

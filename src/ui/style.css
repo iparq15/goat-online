@@ -2128,3 +2128,18 @@ button,
   letter-spacing: 3px;
 }
 
+/* ---------- Robo ---------- */
+.fx-draw {
+  transform-origin: 50% 50%;
+  z-index: 6;
+  pointer-events: none;
+}
+.fx-draw .card {
+  --cw: var(--dw);
+  --ch: var(--dh);
+  width: var(--dw);
+  height: var(--dh);
+  margin: 0;
+  box-shadow: inset 0 0 0 2px var(--frame-d), 0 0 0 2px var(--dark), 0 0 14px 2px #f5d76e88;
+}
+
