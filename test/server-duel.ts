@@ -136,6 +136,10 @@ class BotClient {
         this.seat = m.seat;
         this.token = m.token;
         break;
+      case 'toss':
+        // Volado: quien gana elige (al azar) si empieza.
+        if (m.winner === this.seat) this.send({ t: 'first', goFirst: this.rng() < 0.5 });
+        break;
       case 'update': {
         this.updates++;
         this.last = m;

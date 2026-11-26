@@ -4,7 +4,7 @@
 import type { OcgMessage, OcgResponse } from 'ocgcore-wasm';
 import type { Deck } from './engine/ydk.ts';
 
-export const PROTOCOL_VERSION = 2;
+export const PROTOCOL_VERSION = 3;
 
 /** Sala del lobby (GET /api/rooms, POST /api/rooms). */
 export interface RoomInfo {
@@ -58,6 +58,8 @@ export type ClientMsg =
   | { t: 'join'; v: number; name: string; deck: Deck; token?: string }
   | { t: 'respond'; seq: number; response: OcgResponse }
   | { t: 'surrender' }
+  /** Quien ganó el volado elige: empezar (true) o que empiece el otro. */
+  | { t: 'first'; goFirst: boolean }
   /** La app pasó a segundo plano (true) o volvió (false). */
   | { t: 'away'; away: boolean }
   /** Salir de una sala que aún no ha empezado. */
@@ -78,6 +80,8 @@ export type ServerMsg =
       forfeitAt?: number;
     }
   | { t: 'deck-invalid'; problems: string[] }
+  /** Volado antes del duelo: el asiento 0 es HEADS y el 1 TAILS; `winner` elige quién empieza. */
+  | { t: 'toss'; result: 'heads' | 'tails'; winner: 0 | 1 }
   | {
       t: 'update';
       /** Número de decisión: la respuesta debe llevar el mismo. */

@@ -13,6 +13,7 @@ import { loadNameFont } from './card-view.ts';
 import { clearPics, importPics, loadPics, picCount } from './card-pics.ts';
 import { customSoundName, importCustomSound, loadCustomSound, playCustomSound, removeCustomSound } from './custom-sound.ts';
 import { showCalculator } from './calculator.ts';
+import { randomSide, showCoinToss } from './coin-toss.ts';
 import { showDeckList } from './deck-editor.ts';
 import { listDecks, migrateLegacy } from './deck-store.ts';
 import { DuelClient } from './duel-client.ts';
@@ -281,17 +282,26 @@ async function practiceSetup(): Promise<void> {
     const idx = [0, 1].map((i) => Number($<HTMLSelectElement>(`d${i}`).value));
     const curtain = $<HTMLInputElement>('curtain').checked;
     prefs.set('practice', { names, deckNames: idx.map((i) => all[i].name), curtain });
-    void startPractice(names, [all[idx[0]].deck, all[idx[1]].deck], curtain);
+    // Volado: Player 1 HEADS, Player 2 TAILS; quien gana elige si empieza.
+    const result = randomSide();
+    const winner = result === 'heads' ? 0 : 1;
+    fresh();
+    showCoinToss(app, {
+      names,
+      result,
+      canChoose: true,
+      onChoose: (goFirst) => void startPractice(names, [all[idx[0]].deck, all[idx[1]].deck], curtain, (goFirst ? winner : 1 - winner) as 0 | 1),
+    });
   };
 }
 
 // ---------- duelo en el mismo móvil ----------
 
-async function startPractice(names: [string, string], decks: [Deck, Deck], curtain: boolean): Promise<void> {
+async function startPractice(names: [string, string], decks: [Deck, Deck], curtain: boolean, firstSeat?: 0 | 1): Promise<void> {
   fresh();
   app.innerHTML = `<div class="screen center"><p class="muted">Shuffling…</p></div>`;
   const core = await assets.core();
-  const host = new LocalHost(core, assets.data, decks, names);
+  const host = new LocalHost(core, assets.data, decks, names, firstSeat);
   keepAwake(true);
   app.innerHTML = `<div class="hotseat"><div id="s0" class="seat"></div><div id="s1" class="seat"></div><div id="curtain" class="curtain" hidden></div></div>`;
   const seatEls = [document.getElementById('s0')!, document.getElementById('s1')!];

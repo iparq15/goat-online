@@ -2100,3 +2100,31 @@ button,
   outline-offset: -3px;
   box-shadow: 0 0 8px 2px #ffe14aaa;
 }
+
+/* ---------- Volado ---------- */
+.toss .toss-sides {
+  font-size: 15px;
+  color: var(--muted);
+}
+.toss .toss-sides b {
+  color: var(--ink);
+}
+.toss-result {
+  text-align: center;
+}
+.toss-result h2 {
+  font-size: 22px;
+  margin: 4px 0;
+}
+
+/* ---------- Cambio de fase ---------- */
+.fx-banner.fx-phase {
+  top: 46%;
+  padding: 8px 0 7px;
+  transform-origin: 50% 50%;
+}
+.fx-banner.fx-phase .t {
+  font-size: 15px;
+  letter-spacing: 3px;
+}
+

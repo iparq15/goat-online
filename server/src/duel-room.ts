@@ -58,6 +58,8 @@ export class DuelRoom extends DurableObject<Env> {
   private away = new Set<0 | 1>();
   /** Momento en que pierde cada asiento desconectado. */
   private gone: [number | null, number | null] = [null, null];
+  /** Volado en curso (los dos están en la sala y el ganador aún no eligió). */
+  private toss: { result: 'heads' | 'tails'; winner: 0 | 1 } | null = null;
   private ready: Promise<void>;
 
   constructor(ctx: DurableObjectState, env: Env) {
@@ -66,6 +68,7 @@ export class DuelRoom extends DurableObject<Env> {
       this.roomId = (await ctx.storage.get<string>('roomId')) ?? '';
       this.lobby = (await ctx.storage.get<(Seat | null)[]>('lobby')) ?? [null, null];
       this.gone = (await ctx.storage.get<[number | null, number | null]>('gone')) ?? [null, null];
+      this.toss = (await ctx.storage.get<{ result: 'heads' | 'tails'; winner: 0 | 1 }>('toss')) ?? null;
       await this.restore();
     });
   }
@@ -122,6 +125,14 @@ export class DuelRoom extends DurableObject<Env> {
         this.arb = null;
         await this.restore();
         return;
+      case 'first': {
+        const t = this.toss;
+        if (att.seat === null || this.match || !t || att.seat !== t.winner) return;
+        const firstSeat = (msg.goFirst ? t.winner : 1 - t.winner) as 0 | 1;
+        this.toss = null;
+        await this.ctx.storage.delete('toss');
+        return this.start(firstSeat);
+      }
       case 'surrender':
         if (att.seat === null || !this.match || this.match.ended) return;
         return this.finish(this.teamOf(att.seat) === 0 ? 1 : 0, 'Surrender');
@@ -166,6 +177,7 @@ export class DuelRoom extends DurableObject<Env> {
       this.send(ws, { t: 'joined', seat, token: seats[seat]!.token, opponent: this.seatName((1 - seat) as 0 | 1) });
       this.send(ws, this.statusOf((1 - seat) as 0 | 1));
       this.notifyOpponentOf(seat);
+      if (!this.match && this.toss) this.send(ws, { t: 'toss', ...this.toss });
       if (this.match) {
         this.sendUpdate(seat, ws, true);
         if (this.match.ended) this.send(ws, { t: 'ended', winner: this.match.ended.winner, reason: this.match.ended.reason });
@@ -190,12 +202,14 @@ export class DuelRoom extends DurableObject<Env> {
     if (this.lobby[1 - seat]) this.send(ws, this.statusOf((1 - seat) as 0 | 1));
     this.notifyOpponentOf(seat as 0 | 1);
 
-    if (this.lobby[0] && this.lobby[1]) await this.start();
+    if (this.lobby[0] && this.lobby[1]) await this.startToss();
     else await this.schedule();
   }
 
   private async leaveLobby(seat: 0 | 1): Promise<void> {
     this.lobby[seat] = null;
+    this.toss = null;
+    await this.ctx.storage.delete('toss');
     await this.ctx.storage.put('lobby', this.lobby);
     for (const s of this.socketsOf((1 - seat) as 0 | 1)) this.send(s, { t: 'opponent', name: null, connected: false });
     if (!this.lobby[0] && !this.lobby[1]) await this.closeRoom();
@@ -258,8 +272,18 @@ export class DuelRoom extends DurableObject<Env> {
 
   // ---------- duelo ----------
 
-  private async start(): Promise<void> {
-    const firstSeat = crypto.getRandomValues(new Uint8Array(1))[0] & 1;
+  /** Volado: el asiento 0 es HEADS y el 1 TAILS; el ganador elegirá quién empieza ({t:'first'}). */
+  private async startToss(): Promise<void> {
+    if (!this.toss) {
+      const result = (crypto.getRandomValues(new Uint8Array(1))[0]! & 1) === 0 ? 'heads' : 'tails';
+      this.toss = { result, winner: result === 'heads' ? 0 : 1 };
+      await this.ctx.storage.put('toss', this.toss);
+    }
+    for (const ws of this.ctx.getWebSockets()) this.send(ws, { t: 'toss', ...this.toss });
+    await this.schedule();
+  }
+
+  private async start(firstSeat: 0 | 1): Promise<void> {
     this.match = {
       seats: [this.lobby[0]!, this.lobby[1]!],
       teamOfSeat: firstSeat === 0 ? [0, 1] : [1, 0],

@@ -2,6 +2,7 @@
 // espera y el duelo contra otra persona por WebSocket, con reconexión automática y aviso al
 // rival cuando la app pasa a segundo plano (iOS la congela).
 
+import { showCoinToss } from './coin-toss.ts';
 import { decode, encode } from '../codec.ts';
 import type { GoatData } from '../engine/data.ts';
 import { validateDeck, type Deck } from '../engine/ydk.ts';
@@ -251,6 +252,9 @@ export function playRoom(ctx: OnlineCtx, s: Session): void {
   let session: Session = { ...s };
   let client: DuelClient | null = null;
   let oppName: string | null = null;
+  let mySeat: 0 | 1 = 0;
+  /** El volado está en pantalla: los avisos de la sala no la tapan. */
+  let tossing = false;
   let finished = false;
   let link: OnlineLink;
 
@@ -265,7 +269,7 @@ export function playRoom(ctx: OnlineCtx, s: Session): void {
   };
 
   const waiting = (status: string) => {
-    if (client) return;
+    if (client || tossing) return;
     const url = `${location.origin}${location.pathname}?room=${session.room}`;
     app.innerHTML = `<div class="screen center">
       <h1>Room</h1>
@@ -301,6 +305,7 @@ export function playRoom(ctx: OnlineCtx, s: Session): void {
     switch (m.t) {
       case 'joined':
         session = { ...session, token: m.token };
+        mySeat = m.seat;
         ls.set(SESSION_KEY, session);
         oppName = m.opponent;
         if (!client) waiting(oppName ? `${esc(oppName)} joined. Starting<span class="dots"></span>` : 'Waiting for an opponent<span class="dots"></span>');
@@ -321,6 +326,18 @@ export function playRoom(ctx: OnlineCtx, s: Session): void {
           return;
         }
         break;
+      case 'toss': {
+        if (client) return;
+        tossing = true;
+        const names: [string, string] = mySeat === 0 ? [session.name, oppName ?? 'Opponent'] : [oppName ?? 'Opponent', session.name];
+        showCoinToss(app, {
+          names,
+          result: m.result,
+          canChoose: m.winner === mySeat,
+          onChoose: (goFirst) => link.send({ t: 'first', goFirst }),
+        });
+        return;
+      }
       case 'update':
         if (!client) {
           app.innerHTML = '<div id="seat" class="seat"></div>';

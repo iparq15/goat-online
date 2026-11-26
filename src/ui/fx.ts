@@ -285,6 +285,26 @@ export class Fx {
     b.remove();
   }
 
+  /** Cambio de fase: una franja más estrecha y rápida que la del turno, con el nombre de la fase. */
+  async phase(title: string, mine: boolean): Promise<void> {
+    const b = document.createElement('div');
+    b.className = `fx-banner fx-phase ${mine ? 'mine' : 'theirs'}`;
+    b.innerHTML = `<div class="t">${title}</div>`;
+    this.layer().appendChild(b);
+    await this.run(
+      b,
+      [
+        { transform: 'scaleY(0)', opacity: 1 },
+        { transform: 'scaleY(1)', opacity: 1, offset: 0.18 },
+        { transform: 'scaleY(1)', opacity: 1, offset: 0.8 },
+        { transform: 'scaleY(0)', opacity: 0 },
+      ],
+      720,
+      { easing: 'steps(6)' },
+    );
+    b.remove();
+  }
+
   /** Sello grande (NEGATED, resultado de moneda…). */
   async stamp(text: string, cls = ''): Promise<void> {
     const s = document.createElement('div');

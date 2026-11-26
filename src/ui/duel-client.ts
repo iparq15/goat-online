@@ -11,6 +11,16 @@ import { settings, updateSettings } from './settings.ts';
 import { play, type Sfx } from './sfx.ts';
 
 /** Prioridad de los sonidos (si hay varios en una actualización suena el primero). */
+/** Nombre de la franja de cada fase (las sub-fases de la batalla no la muestran). */
+const PHASE_BANNER: Record<number, string> = {
+  0x1: 'DRAW PHASE',
+  0x2: 'STANDBY PHASE',
+  0x4: 'MAIN PHASE 1',
+  0x8: 'BATTLE PHASE',
+  0x100: 'MAIN PHASE 2',
+  0x200: 'END PHASE',
+};
+
 const SFX_ORDER: Sfx[] = ['damage', 'attack', 'activate', 'summon', 'set', 'turn', 'heal', 'draw'];
 import {
   allPoolCodes,
@@ -215,6 +225,13 @@ export class DuelClient {
           const title = this.opts.hotseat ? `${esc(this.nameOf(ev.player & 1)).toUpperCase()}'S TURN` : mine ? 'YOUR TURN' : "OPPONENT'S TURN";
           play('turn');
           await this.fx.banner(title, `TURN ${m.view.turn}`, mine);
+          break;
+        }
+        case T.NEW_PHASE: {
+          const name = PHASE_BANNER[ev.phase];
+          if (!name) break;
+          const mine = m.view.turnPlayer === me;
+          await this.fx.phase(name, this.opts.hotseat ? true : mine);
           break;
         }
         case T.CHAINING:
