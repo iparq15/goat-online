@@ -86,6 +86,8 @@ export class DuelClient {
   private handlers = new Map<string, () => void>();
   private hid = 0;
   private zoneActions = new Map<string, Action[]>();
+  /** Selección de cartas: mostrar la lista (ventana) en vez de elegir en el tablero. */
+  private listMode = false;
   private placeable = new Map<string, Place>();
   private announceQuery = '';
   private endHidden = false;
@@ -381,6 +383,7 @@ export class DuelClient {
     // Nueva decisión: se reinicia la selección.
     if (m.prompt && (m.prompt !== prevPrompt || m.retry)) {
       this.picks = [];
+      this.listMode = false;
       this.places = [];
       this.counters = [];
       this.modalHidden = false;
@@ -692,6 +695,12 @@ export class DuelClient {
   }
 
   private onZone(k: string): void {
+    const targets = this.boardTargets();
+    if (targets && this.deciding) {
+      const i = targets.get(k);
+      if (i !== undefined) this.pickTarget(i);
+      return;
+    }
     const pl = this.placeable.get(k);
     if (pl && this.deciding) {
       const i = this.places.findIndex((p) => key(p.player, p.location, p.sequence) === k);
@@ -803,7 +812,7 @@ export class DuelClient {
       <div class="hand">${v.players[me].hand
         .map((c, i) => {
           const k = key(me, 2, i);
-          const cls = [this.zoneActions.has(k) ? 'hl' : '', this.flashes.has(k) ? 'flash' : ''].join(' ');
+          const cls = [this.zoneActions.has(k) ? 'hl' : '', this.flashes.has(k) ? 'flash' : '', this.targetCls(k)].join(' ');
           return miniCard(c.code, { cls, data: `data-z="${k}"`, back: this.backOf(me) });
         })
         .join('')}</div>
@@ -834,6 +843,7 @@ export class DuelClient {
     const k = key(p, loc, seq);
     const cls = ['zone', loc === 4 ? 'zm' : seq === 5 ? 'zf' : 'zs'];
     if (this.zoneActions.has(k)) cls.push('hl');
+    cls.push(this.targetCls(k));
     if (this.placeable.has(k)) cls.push('pl');
     if (this.places.some((x) => key(x.player, x.location, x.sequence) === k)) cls.push('picked');
     if (this.flashes.has(k)) cls.push('flash');
@@ -872,6 +882,7 @@ export class DuelClient {
     }
     const btns: string[] = [];
     let text = '';
+    if (this.boardTargets()) return this.targetBar();
     switch (p.type) {
       case OcgMessageType.SELECT_IDLECMD:
         text = this.u!.view.phase === 256 ? 'Main Phase 2: tap a card.' : 'Main Phase: tap a card.';
@@ -908,6 +919,7 @@ export class DuelClient {
   private promptHtml(): string {
     const p = this.u!.prompt;
     if (!p || this.sent || this.ended || this.modalHidden || this.busy) return '';
+    if (this.boardTargets()) return '';
     const body = this.promptBody(p);
     if (!body) return '';
     return `<div class="modal"><div class="mbox">${body}<div class="mfoot">${this.button('View field', () => (this.modalHidden = true), 'ghost')}</div></div></div>`;
@@ -935,6 +947,80 @@ export class DuelClient {
     // El equipo 0 del motor es quien empieza; el color va por asiento (Player 1 / Player 2).
     const seat = p === me ? (this.opts.seat ?? 0) : 1 - (this.opts.seat ?? 0);
     return seat === 0 ? 'blue' : 'red';
+  }
+
+  /**
+   * Selección de cartas en el propio tablero: si TODAS las cartas elegibles están a la vista (campo de
+   * los dos jugadores o tu mano), devuelve zona → índice de la opción. Si alguna está en el
+   * cementerio, el mazo, desterrada o en la mano del rival, se usa la lista (null).
+   */
+  private boardTargets(): Map<string, number> | null {
+    const u = this.u;
+    const p = u?.prompt;
+    if (!u || !p || this.sent || this.ended || this.listMode || !this.deciding) return null;
+    const T = OcgMessageType;
+    let list: { controller: number; location: number; sequence: number }[];
+    if (p.type === T.SELECT_CARD || p.type === T.SELECT_TRIBUTE) list = p.selects;
+    else if (p.type === T.SELECT_UNSELECT_CARD) list = [...p.select_cards, ...p.unselect_cards];
+    else return null;
+    const me = u.view.you;
+    const out = new Map<string, number>();
+    for (const [i, c] of list.entries()) {
+      const loc = c.location;
+      if (!(loc === 4 || loc === 8 || (loc === 2 && c.controller === me))) return null;
+      out.set(key(c.controller, loc, c.sequence), i);
+    }
+    return out.size ? out : null;
+  }
+
+  /** Clase de una zona/carta durante la selección en el tablero: elegible o ya elegida. */
+  private targetCls(k: string): string {
+    const t = this.boardTargets();
+    const i = t?.get(k);
+    if (i === undefined) return '';
+    const p = this.u!.prompt!;
+    const chosen = p.type === OcgMessageType.SELECT_UNSELECT_CARD ? i >= p.select_cards.length : this.picks.includes(i);
+    return chosen ? 'tg picked' : 'tg';
+  }
+
+  private pickTarget(i: number): void {
+    const p = this.u!.prompt!;
+    const T = OcgMessageType;
+    if (p.type === T.SELECT_UNSELECT_CARD) return void this.respond({ type: OcgResponseType.SELECT_UNSELECT_CARD, index: i });
+    if (p.type !== T.SELECT_CARD && p.type !== T.SELECT_TRIBUTE) return;
+    this.togglePick(i, p.max);
+    // Una sola carta exacta (objetivo de ataque, la mayoría de efectos): se elige al tocarla.
+    if (p.type === T.SELECT_CARD && p.min === 1 && p.max === 1 && this.picks.length === 1) {
+      this.respond({ type: OcgResponseType.SELECT_CARD, indicies: [...this.picks] } as OcgResponse);
+    }
+  }
+
+  /** Barra inferior mientras se elige en el tablero. */
+  private targetBar(): string {
+    const p = this.u!.prompt!;
+    const R = OcgResponseType;
+    const T = OcgMessageType;
+    const btns: string[] = [];
+    const head = hintText(this.selectHint ? descText(this.selectHint) : p.type === T.SELECT_TRIBUTE ? sys(531) : sys(560));
+    let text = head;
+    if (p.type === T.SELECT_CARD || p.type === T.SELECT_TRIBUTE) {
+      const tribute = p.type === T.SELECT_TRIBUTE;
+      const weight = (i: number) => (tribute ? Math.max(1, (p as { selects: { release_param: number }[] }).selects[i].release_param & 0xff) : 1);
+      const total = this.picks.reduce((a, i) => a + weight(i), 0);
+      const ok = tribute ? total >= p.min && this.picks.length <= p.max : this.picks.length >= p.min && this.picks.length <= p.max;
+      const range = p.min === p.max ? `${p.min}` : `${p.min}–${p.max}`;
+      text = `${head} · tap ${range} highlighted card${p.max === 1 ? '' : 's'}`;
+      if (!(p.type === T.SELECT_CARD && p.min === 1 && p.max === 1)) {
+        btns.push(this.button(`OK (${this.picks.length})`, () => ok && this.respond({ type: tribute ? R.SELECT_TRIBUTE : R.SELECT_CARD, indicies: [...this.picks] } as OcgResponse), ok ? 'go' : 'off'));
+      }
+      if (p.can_cancel) btns.push(this.button('Cancel', () => this.respond({ type: tribute ? R.SELECT_TRIBUTE : R.SELECT_CARD, indicies: null } as OcgResponse)));
+    } else if (p.type === T.SELECT_UNSELECT_CARD) {
+      text = `${head} · tap the highlighted cards`;
+      if (p.can_finish) btns.push(this.button('Finish', () => this.respond({ type: R.SELECT_UNSELECT_CARD, index: null }), 'go'));
+      if (p.can_cancel) btns.push(this.button('Cancel', () => this.respond({ type: R.SELECT_UNSELECT_CARD, index: null })));
+    }
+    btns.push(this.button('List', () => (this.listMode = true)));
+    return `<div class="bar target"><span class="btxt">${esc(text)}</span><span class="bbtns">${btns.join('')}</span></div>`;
   }
 
   /** Lista de cartas seleccionables (con su sitio). */

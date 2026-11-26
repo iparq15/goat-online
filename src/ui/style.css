@@ -2064,3 +2064,39 @@ button,
   display: flex;
   gap: 8px;
 }
+
+/* ---------- Elegir cartas en el tablero ---------- */
+/* Cartas elegibles: contorno amarillo que parpadea; elegidas: verde. */
+.zone.tg,
+.hand .card.tg {
+  outline: 3px solid #ffe14a;
+  outline-offset: 1px;
+  box-shadow: 0 0 12px 3px #ffe14acc;
+  animation: tgpulse 0.9s steps(2, end) infinite;
+  z-index: 2;
+}
+.zone.tg.picked,
+.hand .card.tg.picked {
+  outline-color: var(--ok);
+  box-shadow: 0 0 12px 3px #6be08acc;
+  animation: none;
+}
+@keyframes tgpulse {
+  50% { outline-color: #fff6b8; box-shadow: 0 0 4px 1px #ffe14a88; }
+}
+.hand .card.tg {
+  transform: translateY(-4px);
+}
+.bar.target {
+  background: #3a2c10;
+  box-shadow: inset 0 3px 0 #ffe14a;
+}
+.bar.target .btxt {
+  color: #ffe14a;
+}
+
+/* En la mano las cartas van juntas: el contorno va por dentro para que no se fundan. */
+.hand .card.tg {
+  outline-offset: -3px;
+  box-shadow: 0 0 8px 2px #ffe14aaa;
+}
