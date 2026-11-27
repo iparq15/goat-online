@@ -2143,3 +2143,364 @@ button,
   box-shadow: inset 0 0 0 2px var(--frame-d), 0 0 0 2px var(--dark), 0 0 14px 2px #f5d76e88;
 }
 
+/* ---------- Torneos ---------- */
+.tm {
+  padding-left: 12px;
+  padding-right: 12px;
+}
+.tm .center {
+  text-align: center;
+}
+.tm-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+.tm-head h1 {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.tm-head small {
+  font-size: 13px;
+}
+.tm-back {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border: 0;
+  background: var(--panel2);
+  font-family: var(--pix);
+  font-size: 18px;
+  box-shadow: 0 0 0 2px var(--dark), inset -3px -3px 0 #0006;
+  cursor: pointer;
+}
+.tm-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 18px;
+}
+.tm-item {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+.tm-open {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  border: 0;
+  padding: 10px 12px;
+  background: var(--panel);
+  box-shadow: 0 0 0 2px var(--dark), inset 0 0 0 2px var(--zone-line);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  cursor: pointer;
+}
+.tm-open b {
+  font-size: 16px;
+  overflow-wrap: anywhere;
+}
+.tm-open small {
+  color: var(--muted);
+  font-size: 13px;
+}
+.tm-open small.running {
+  color: var(--amber);
+}
+.tm-open small.done {
+  color: var(--ok);
+}
+.tm-tabs {
+  padding: 0;
+  margin: 10px 0 12px;
+}
+.tm-tabs button {
+  font-size: 8px;
+}
+.tm-h {
+  font-size: 11px !important;
+  margin: 18px 0 8px;
+}
+.tm-add {
+  background: var(--panel);
+  padding: 10px 12px;
+  box-shadow: 0 0 0 2px var(--dark), inset 0 0 0 2px var(--zone-line);
+}
+.tm-add details {
+  margin-top: 10px;
+  color: var(--muted);
+}
+.tm-add summary {
+  cursor: pointer;
+}
+.tm textarea {
+  width: 100%;
+  margin-top: 8px;
+  background: var(--dark);
+  color: var(--ink);
+  border: 0;
+  box-shadow: inset 0 0 0 2px var(--zone-line);
+  padding: 10px;
+  font: inherit;
+  font-size: 16px;
+  -webkit-user-select: text;
+  user-select: text;
+}
+.tm-players {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.tm-prow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  border: 0;
+  padding: 8px 10px;
+  background: var(--bg2);
+  box-shadow: inset 0 0 0 2px var(--zone-line);
+  cursor: pointer;
+}
+.tm-prow.editing {
+  display: block;
+  cursor: default;
+  background: var(--panel);
+}
+.tm-prow .n {
+  font-family: var(--pix);
+  font-size: 9px;
+  color: var(--muted);
+  width: 22px;
+}
+.tm-prow .who {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.tm-prow .who b,
+.tm-prow .who small {
+  overflow-wrap: anywhere;
+}
+.tm-prow .who small {
+  color: var(--amber);
+  font-size: 13px;
+}
+.tm-prow .rec {
+  font-family: var(--pix);
+  font-size: 9px;
+}
+.tm-prow.dropped {
+  opacity: 0.5;
+}
+.tm-prow.dropped .rec {
+  color: var(--opp);
+}
+.tm-timer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.tm-time {
+  flex: 1;
+  font-family: var(--pix);
+  font-size: 26px;
+  color: var(--ink);
+}
+.tm-time.low {
+  color: var(--amber);
+}
+.tm-time.over {
+  color: var(--opp);
+  animation: tmblink 1s steps(2) infinite;
+}
+@keyframes tmblink {
+  50% {
+    opacity: 0.3;
+  }
+}
+.tm-match {
+  background: var(--panel);
+  box-shadow: 0 0 0 2px var(--dark), inset 0 0 0 2px var(--zone-line);
+  padding: 8px 10px 10px;
+  margin-bottom: 10px;
+}
+.tm-match.done {
+  box-shadow: 0 0 0 2px var(--dark), inset 0 0 0 2px var(--ok);
+}
+.tm-match.final {
+  box-shadow: 0 0 0 2px var(--dark), inset 0 0 0 2px var(--amber);
+}
+.tm-match .mt {
+  font-size: 12px;
+  color: var(--muted);
+}
+.tm-match .mt b {
+  color: var(--amber);
+}
+.tm-match .mp {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 0 8px;
+  font-size: 16px;
+}
+.tm-match .mp > span {
+  display: flex;
+  flex-direction: column;
+  overflow-wrap: anywhere;
+}
+.tm-match .mp > span:last-child {
+  text-align: right;
+}
+.tm-match .mp small {
+  font-size: 12px;
+  color: var(--muted);
+}
+.tm-match .mp .vs {
+  font-family: var(--pix);
+  font-size: 9px;
+  color: var(--muted);
+  text-align: center !important;
+}
+.tm .win {
+  color: var(--ok);
+  font-weight: bold;
+}
+.tm-res {
+  display: flex;
+  gap: 4px;
+}
+.tm-res button {
+  flex: 1;
+  border: 0;
+  padding: 9px 0;
+  font-family: var(--pix);
+  font-size: 9px;
+  background: var(--dark);
+  color: var(--ink);
+  box-shadow: inset 0 0 0 2px var(--zone-line);
+  cursor: pointer;
+}
+.tm-res button.on {
+  background: var(--ok);
+  color: #0c2414;
+}
+.tm-res button:disabled {
+  opacity: 0.6;
+}
+.tm-champ {
+  text-align: center;
+  margin: 16px 0;
+  padding: 14px;
+  background: var(--amber);
+  color: #24140a;
+  box-shadow: 0 0 0 2px var(--dark), inset -3px -3px 0 #0004;
+}
+.tm-champ small {
+  display: block;
+  font-family: var(--pix);
+  font-size: 9px;
+}
+.tm-champ b {
+  font-family: var(--pix);
+  font-size: 16px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.tm-scroll {
+  overflow-x: auto;
+}
+.tm-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+.tm-table th {
+  font-family: var(--pix);
+  font-size: 7px;
+  color: var(--muted);
+  text-align: left;
+  padding: 6px 4px;
+}
+.tm-table td {
+  padding: 6px 4px;
+  border-top: 1px solid var(--zone-line);
+  white-space: nowrap;
+}
+.tm-table td.nm {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.tm-table td.nm small {
+  display: block;
+  color: var(--muted);
+}
+.tm-table tr.dropped {
+  opacity: 0.5;
+}
+.tm-bracket {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  margin-bottom: 8px;
+}
+.tm-bracket .col {
+  flex: none;
+  width: 150px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.tm-bracket .col > small {
+  font-size: 12px;
+  color: var(--amber);
+}
+.tm-bracket .bm {
+  background: var(--bg2);
+  box-shadow: inset 0 0 0 2px var(--zone-line);
+  padding: 4px 6px;
+  font-size: 13px;
+}
+.tm-bracket .bm em {
+  display: block;
+  font-style: normal;
+  font-size: 11px;
+  color: var(--muted);
+}
+.tm-bracket .bm span {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+}
+.tm-bracket .bm i {
+  font-style: normal;
+  font-family: var(--pix);
+  font-size: 9px;
+}
+.tm-hround .hm {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 8px;
+  padding: 5px 0;
+  border-top: 1px solid var(--zone-line);
+  font-size: 14px;
+}
+.tm-hround .hm > :last-child {
+  text-align: right;
+}
+.tm-hround .hm b {
+  font-family: var(--pix);
+  font-size: 9px;
+  align-self: center;
+}
+

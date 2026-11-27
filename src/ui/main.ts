@@ -13,6 +13,7 @@ import { loadNameFont } from './card-view.ts';
 import { clearPics, importPics, loadPics, picCount } from './card-pics.ts';
 import { customSoundName, importCustomSound, loadCustomSound, playCustomSound, removeCustomSound } from './custom-sound.ts';
 import { showCalculator } from './calculator.ts';
+import { showTournaments } from './tournament.ts';
 import { randomSide, showCoinToss } from './coin-toss.ts';
 import { showDeckList } from './deck-editor.ts';
 import { listDecks, migrateLegacy } from './deck-store.ts';
@@ -127,6 +128,7 @@ function menu(): void {
       <button class="btn big" id="m-practice">Practice duel</button>
       <button class="btn big" id="m-decks">My decks</button>
       <button class="btn big" id="m-calc">LP calculator</button>
+      <button class="btn big" id="m-tour">Tournaments</button>
       <button class="btn" id="m-settings">Settings</button>
     </div>
     <button class="btn go" id="m-update" ${updateReady ? '' : 'hidden'}>New version ready · tap to update</button>
@@ -141,6 +143,7 @@ function menu(): void {
   if (session) document.getElementById('m-resume')!.onclick = () => (fresh(), playRoom(onlineCtx(), session));
   document.getElementById('m-decks')!.onclick = decks;
   document.getElementById('m-calc')!.onclick = () => (fresh(), showCalculator(app, menu));
+  document.getElementById('m-tour')!.onclick = () => (fresh(), showTournaments(app, menu));
   document.getElementById('m-settings')!.onclick = settingsScreen;
   document.getElementById('m-update')!.onclick = () => location.reload();
 }
