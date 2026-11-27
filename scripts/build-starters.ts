@@ -34,7 +34,7 @@ const AGGRO_EXTRA = `1 Thousand-Eyes Restrict
 
 /**
  * [nombre, principal, extra]. Las listas principales son las de goatformat.com (página indicada);
- * Water Control y Soul Control no están allí y se mantienen como listas estándar propias.
+ * Water Control es una lista que pasó el usuario.
  * goatformat.com no da el Extra Deck: se usa el extra estándar de GOAT.
  */
 const DECKS: [string, string, string][] = [
@@ -64,21 +64,21 @@ const DECKS: [string, string, string][] = [
 1 Ring of Destruction
 1 Torrential Tribute
 2 Trap Dustshoot`, `${CONTROL_EXTRA}`],
-  // goatformat.com/chaos-control.html (Skilled White Chaos Control)
+  // goatformat.com/chaos-control.html (Thunder Dragon Chaos Control, Dale Bellido, 2.º en el World Championship 2020)
   ['Chaos Control', `
 1 Asura Priest
 1 Black Luster Soldier - Envoy of the Beginning
 1 Breaker the Magical Warrior
 2 Chaos Sorcerer
-1 D.D. Warrior Lady
-1 Dark Mimic LV1
-2 Magical Merchant
+2 Dark Mimic LV1
+2 Dekoichi the Battlechanted Locomotive
 2 Magician of Faith
 1 Sangan
 1 Sinister Serpent
-2 Skilled White Magician
+3 Thunder Dragon
+1 Tribe-Infecting Virus
 2 Tsukuyomi
-3 Book of Moon
+2 Book of Moon
 1 Delinquent Duo
 1 Graceful Charity
 1 Heavy Storm
@@ -86,10 +86,11 @@ const DECKS: [string, string, string][] = [
 1 Mystical Space Typhoon
 2 Nobleman of Crossout
 1 Pot of Greed
-3 Scapegoat
+2 Scapegoat
 1 Snatch Steal
-2 Dust Tornado
+1 Dust Tornado
 1 Mirror Force
+1 Raigeki Break
 1 Ring of Destruction
 1 Sakuretsu Armor
 1 Torrential Tribute`, `${CONTROL_EXTRA}`],
@@ -177,33 +178,31 @@ const DECKS: [string, string, string][] = [
 1 Ring of Destruction
 1 Torrential Tribute
 2 Trap Dustshoot`, `${AGGRO_EXTRA}`],
-  // goatformat.com/water-aggro.html
+  // goatformat.com/water-aggro.html (Water Vanilla Aggro)
   ['Water Aggro', `
 2 Abyss Soldier
 1 Breaker the Magical Warrior
-3 Lekunga
-1 Levia-Dragon - Daedalus
-3 Mermaid Knight
-3 Mother Grizzly
-1 Revival Jam
-1 Sangan
 1 Sinister Serpent
-1 Tribe-Infecting Virus
-1 Yomi Ship
+1 7 Colored Fish
+3 Gagagigo
+1 Giant Red Seasnake
+3 Giga Gagagigo
+3 Sea Serpent Warrior of Darkness
+2 Terrorking Salmon
 3 A Legendary Ocean
+3 Dark Factory of Mass Production
 1 Delinquent Duo
 1 Graceful Charity
 1 Heavy Storm
 1 Mystical Space Typhoon
-2 Nobleman of Crossout
+1 Nobleman of Crossout
 1 Pot of Greed
 1 Premature Burial
 1 Snatch Steal
 1 Terraforming
-1 Call of the Haunted
 1 Mirror Force
 1 Ring of Destruction
-3 Sakuretsu Armor
+3 Skill Drain
 3 Solemn Judgment`, `${AGGRO_EXTRA}`],
   // goatformat.com/wind-aggro.html
   ['Wind Aggro', `
@@ -232,6 +231,29 @@ const DECKS: [string, string, string][] = [
 3 Sakuretsu Armor
 3 Solemn Judgment
 1 Widespread Ruin`, `${AGGRO_EXTRA}`],
+  // goatformat.com (Vanilla Aggro con Skill Drain, de la captura que pasó el usuario)
+  ['Vanilla Aggro', `
+3 Archfiend Soldier
+3 Gemini Elf
+3 Insect Knight
+3 Luster Dragon
+3 Mad Dog of Darkness
+2 Neo Bug
+1 Dark Factory of Mass Production
+1 Delinquent Duo
+1 Graceful Charity
+2 Heart of the Underdog
+1 Heavy Storm
+1 Mystical Space Typhoon
+2 Nobleman of Crossout
+2 Order to Charge
+1 Pot of Greed
+1 Snatch Steal
+1 Mirror Force
+1 Ring of Destruction
+2 Sakuretsu Armor
+3 Skill Drain
+3 Solemn Judgment`, `${AGGRO_EXTRA}`],
   // goatformat.com/goat-control.html (Lolmarcus, 7.º en World's 2020)
   ['Goat Control', `
 1 Airknight Parshath
@@ -261,31 +283,49 @@ const DECKS: [string, string, string][] = [
 2 Sakuretsu Armor
 1 Torrential Tribute
 2 Trap Dustshoot`, `${CONTROL_EXTRA}`],
+  // lista enviada por el usuario (Water Control con Mobius)
   ['Water Control', `
-2 Mobius the Frost Monarch
-1 Penguin Soldier
+1 Mobius the Frost Monarch
 2 Abyss Soldier
-2 Mother Grizzly
+3 Mother Grizzly
+2 Aqua Spirit
+2 Yomi Ship
+2 Maryokutai
+1 Nightmare Penguin
 1 Tribe-Infecting Virus
 1 Sinister Serpent
-1 Sangan
-1 Morphing Jar
 1 Breaker the Magical Warrior
-1 Jinzo
-1 Spirit Reaper
-1 D.D. Warrior Lady
-${STAPLE_SPELLS}
-1 Swords of Revealing Light
+1 Sangan
+1 Magician of Faith
+2 Umiiruka
+2 Metamorphosis
 2 Scapegoat
-2 Book of Moon
-2 Nobleman of Crossout
 1 Creature Swap
-${STAPLE_TRAPS}
-2 Sakuretsu Armor
-1 Dust Tornado
-1 Ceasefire
-1 Solemn Judgment
-1 Royal Decree`, CONTROL_EXTRA],
+2 Nobleman of Crossout
+1 Pot of Greed
+1 Graceful Charity
+1 Delinquent Duo
+1 Snatch Steal
+1 Heavy Storm
+1 Premature Burial
+1 Book of Moon
+1 Mystical Space Typhoon
+1 Mirror Force
+1 Ring of Destruction
+1 Call of the Haunted
+2 Trap Dustshoot`, `1 Gatling Dragon
+1 Twin-Headed Thunder Dragon
+1 The Last Warrior from Another Planet
+1 King Dragun
+1 Roaring Ocean Snake
+1 Dark Blade the Dragon Knight
+1 Ryu Senshi
+1 Reaper on the Nightmare
+1 Fiend Skull Dragon
+1 Dark Balter the Terrible
+1 Darkfire Dragon
+1 Dragoness the Wicked Knight
+3 Thousand-Eyes Restrict`],
   // goatformat.com/sacred-phoenix.html
   ['Sacred Phoenix', `
 3 Apprentice Magician
@@ -313,33 +353,29 @@ ${STAPLE_TRAPS}
 1 Ring of Destruction
 3 Solemn Judgment
 1 Torrential Tribute`, `${CONTROL_EXTRA}`],
+  // goatformat.com (Soul Control, de la captura que pasó el usuario)
   ['Soul Control', `
-2 Zaborg the Thunder Monarch
-1 Thestalos the Firestorm Monarch
-1 Mobius the Frost Monarch
-1 Black Luster Soldier - Envoy of the Beginning
 1 Breaker the Magical Warrior
-1 Tribe-Infecting Virus
+2 Dark Mimic LV1
+3 Dekoichi the Battlechanted Locomotive
+2 Magician of Faith
+3 Mobius the Frost Monarch
 1 Sangan
-1 Jinzo
-1 Morphing Jar
 1 Sinister Serpent
-1 Magician of Faith
-1 Spirit Reaper
-1 D.D. Warrior Lady
-1 Tsukuyomi
-2 Soul Exchange
-1 Brain Control
-${STAPLE_SPELLS}
-2 Scapegoat
-1 Book of Moon
+3 Thestalos the Firestorm Monarch
+3 Book of Moon
+1 Delinquent Duo
+1 Graceful Charity
+1 Heavy Storm
+3 Metamorphosis
 2 Nobleman of Crossout
-${STAPLE_TRAPS}
-2 Sakuretsu Armor
-1 Dust Tornado
-1 Ceasefire
-1 Solemn Judgment
-1 Last Turn`, CONTROL_EXTRA],
+1 Pot of Greed
+3 Scapegoat
+1 Snatch Steal
+3 Soul Exchange
+1 Mirror Force
+1 Ring of Destruction
+3 Sakuretsu Armor`, `${CONTROL_EXTRA}`],
   // goatformat.com/paladin-of-white-dragon.html
   ['Paladin of White Dragon', `
 1 Black Luster Soldier - Envoy of the Beginning
